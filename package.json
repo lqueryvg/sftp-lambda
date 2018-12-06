@@ -1,0 +1,68 @@
+{
+  "name": "sftp-lambda",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "xxxtest": "echo \"Error: no test specified\" && exit 1",
+    "test": "mkdir -p test-results/results/ && jest",
+    "test:manual-pull": "cd manual-pull-test && ./docker_sftpd.sh && npx run pull && docker-compose down",
+    "lint": "eslint .",
+    "lintfix": "eslint . --fix",
+    "precommit": "pretty-quick --staged"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "braces": ">=2.3.1",
+    "eslint": "^5.4.0",
+    "eslint-config-airbnb": "^17.1.0",
+    "eslint-config-prettier": "^2.9.0",
+    "eslint-plugin-import": "^2.14.0",
+    "eslint-plugin-jsx-a11y": "^6.1.1",
+    "eslint-plugin-prettier": "^2.6.1",
+    "eslint-plugin-react": "^7.11.1",
+    "husky": "^0.14.3",
+    "jest": "^24.8.0",
+    "jest-junit": "^6.4.0",
+    "jest-mock-console": "^0.4.0",
+    "prettier": "^1.13.7",
+    "pretty-quick": "^1.6.0"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.298.0",
+    "ssh2": "^0.6.1",
+    "ssh2-promise": "^0.1.5"
+  },
+  "jest": {
+    "verbose": true,
+    "collectCoverage": true,
+    "collectCoverageFrom": [
+      "handlers/**/*.js",
+      "!src/**/mock-helpers/*.js"
+    ],
+    "automock": false,
+    "reporters": [
+      "default",
+      "jest-junit"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "statements": 100,
+        "branches": 100,
+        "functions": 100,
+        "lines": 100
+      }
+    },
+    "testEnvironment": "node",
+    "setupFilesAfterEnv": [
+      "jest-mock-console/dist/setupTestFramework.js"
+    ]
+  },
+  "jest-junit": {
+    "output": "./test-results/results/test-results.xml"
+  },
+  "files": [
+    "src/**"
+  ]
+}

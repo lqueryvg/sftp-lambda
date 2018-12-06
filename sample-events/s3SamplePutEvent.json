@@ -1,0 +1,14 @@
+{
+  "Records": [
+    {
+      "s3": {
+        "bucket": {
+          "name": "my-bucket"
+        },
+        "object": {
+          "key": "my-path/my-file"
+        }
+      }
+    }
+  ]
+}

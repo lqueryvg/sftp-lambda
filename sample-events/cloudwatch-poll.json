@@ -1,0 +1,11 @@
+{
+  "version": "0",
+  "id": "450e4ac8-fe44-4294-893c-6256c0235b85",
+  "detail-type": "Scheduled Event",
+  "source": "aws.events",
+  "account": "1234567890",
+  "time": "2016-04-15T05:00:01Z",
+  "region": "us-east-1",
+  "resources": ["arn:aws:events:us-east-1:1234567890:rule/poll"],
+  "detail": {}
+}

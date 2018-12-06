@@ -1,0 +1,38 @@
+{
+  "Records": [
+    {
+      "eventVersion": "2.0",
+      "eventSource": "aws:s3",
+      "awsRegion": "eu-west-1",
+      "eventTime": "2016-04-14T17:18:17.671Z",
+      "eventName": "ObjectCreated:Put",
+      "xxxxuserIdentity": {
+        "principalId": "AWS:AAAAAAAAAAAAAAA:user1"
+      },
+      "requestParameters": {
+        "sourceIPAddress": "127.0.0.1"
+      },
+      "responseElements": {
+        "x-amz-request-id": "969BD8E83D34EAB1",
+        "x-amz-id-2": "J8JV+ogGYPjm8Rnvh2+6LY5vLd5Pz+NDyXYaZlx5Cc4PWmtqFNHEL7FqZUZQPrOO"
+      },
+      "s3": {
+        "s3SchemaVersion": "1.0",
+        "configurationId": "00000000-0000-0000-0000-000000000000",
+        "bucket": {
+          "name": "john-ftp-test",
+          "ownerIdentity": {
+            "principalId": "AVAAAAAAAAAAAA"
+          },
+          "arn": "arn:aws:s3:::wibble"
+        },
+        "object": {
+          "key": "test/test.txt",
+          "xxxsize": 13,
+          "eTag": "8ddd8be4b179a529afa5f2ffae4b9858",
+          "sequencer": "00570FD0D99C0CF00E"
+        }
+      }
+    }
+  ]
+}

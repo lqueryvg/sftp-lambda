@@ -1,0 +1,10 @@
+version: "3"
+services:
+  sftpd:
+    ports:
+      - "${LOCALHOST_PORT}:22"
+    volumes:
+      - ./tmp/${KEYNAME}.pub:/home/demo/.ssh/keys/id_rsa.pub:ro
+      - ./tmp/ftpshare:/home/demo/share
+    image: "atmoz/sftp"
+    command: /entrypoint demo::1001

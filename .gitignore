@@ -1,0 +1,23 @@
+# package directories
+node_modules
+jspm_packages
+coverage/
+
+# Serverless directories
+.serverless
+.DS_Store
+
+#VS code directories 
+.vscode
+
+# Public/Private key files
+*.asc
+
+# VIM swap files
+*.swp
+
+# other
+.DS_Store
+test-results/
+.idea/
+tmp/

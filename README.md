@@ -25,9 +25,6 @@ Serverless lambda functions to sync files between AWS S3 and an SFTP server.
   - deploy multiple instances
     of the same lambdas to achieve multiple connection "flows",
     eg. different cron schedules for different FTP servers, directories or buckets
-- Configuration (e.g. SFTP connection information) is via Lambda environment variables
-- Deployment of related resources (e.g. SQS queue) is up to you.
-  - Sample configurations are provided (TODO). Serverless is recommended.
 - Behaviour
   - S3 -> SFTP (`push` & `pushRetry`)
     - triggered whenever a file is uploaded to an S3 bucket
@@ -45,7 +42,28 @@ Serverless lambda functions to sync files between AWS S3 and an SFTP server.
 
 ## Configuration
 
-TODO
+- Configuration (e.g. SFTP connection information) is via Lambda environment variables
+- To implement multiple "flows" (e.g. different target directories, buckets, or FTP servers with their
+  own connection information), deploy multiple instances of the lambdas with relevant variables.
+- Each "flow" will need it's own SQS queue if the target directory & FTP server connection are different.
+
+### Environment Variables
+
+Not all variables are required by all lambdas, as described below:
+
+| variable                        | applies to function | notes                                                                               |
+| ------------------------------- | ------------------- | ----------------------------------------------------------------------------------- |
+| SFTP_HOST, SFTP_PORT, SFTP_USER | all                 | SSH (SFTP) connection information                                                   |
+| SFTP_PRIVATE_KEY                | all                 | SSH private key (the key multiline contents, not the filename)                      |
+| SFTP_RETRY_QUEUE_NAME           | push, pushRetry     | SQS pushRetry queue name                                                            |
+| SFTP_TARGET_S3_BUCKET           | pull                | target S3 bucket                                                                    |
+| SFTP_SOURCE_DIR                 | pull                | source directory to pull from                                                       |
+| SFTP_FILE_RETENTION_DAYS        | pull                | how many days after file transfer to keep file on source FTP server before deleting |
+
+## Infrastructure Configuraion
+
+Deployment of related resources (e.g. SQS queues) is up to you.
+Sample configurations are provided (TODO). Serverless is recommended.
 
 ## Design
 
@@ -89,21 +107,6 @@ TODO
   - if successful, delete the message from the pushRetry queue
 - on error, the lambda fails
 
-## Environment Variables
-
-Lambdas are configured via environment variables.
-
-Not all variables are required by all lambdas, as described below:
-
-| variable                        | applies to function | notes                                                                               |
-| ------------------------------- | ------------------- | ----------------------------------------------------------------------------------- |
-| SFTP_HOST, SFTP_PORT, SFTP_USER | all                 | SSH (SFTP) connection information                                                   |
-| SFTP_PRIVATE_KEY                | all                 | SSH private key (the key multiline contents, not the filename)                      |
-| SFTP_RETRY_QUEUE_NAME           | push, pushRetry     | SQS pushRetry queue name                                                            |
-| SFTP_TARGET_S3_BUCKET           | pull                | target S3 bucket                                                                    |
-| SFTP_SOURCE_DIR                 | pull                | source directory to pull from                                                       |
-| SFTP_FILE_RETENTION_DAYS        | pull                | how many days after file transfer to keep file on source FTP server before deleting |
-
 ## Diagrams
 
 ### Sequence Diagram
@@ -113,3 +116,9 @@ Not all variables are required by all lambdas, as described below:
 ### Activity Diagram
 
 ![Activity Diagram](diagrams/activity.png)
+
+### Custom VPC
+
+Setup a custom VPC if you want a fixed IP address.
+
+![Custom VPC](diagrams/vpc.png)

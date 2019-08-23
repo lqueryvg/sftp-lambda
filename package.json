@@ -4,7 +4,6 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "xxxtest": "echo \"Error: no test specified\" && exit 1",
     "test": "mkdir -p test-results/results/ && jest",
     "test:manual-pull": "cd manual-pull-test && ./docker_sftpd.sh && npx run pull && docker-compose down",
     "lint": "eslint .",

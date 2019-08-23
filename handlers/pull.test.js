@@ -11,7 +11,7 @@ const AWS = require("aws-sdk");
 
 const s3 = new AWS.S3();
 
-const { pull } = require("../handlers/pull.js");
+const { pull } = require("./pull.js");
 
 describe("pull", () => {
   beforeAll(() => {
@@ -26,6 +26,7 @@ describe("pull", () => {
     process.env.SFTP_FILE_RETENTION_DAYS = 1;
     process.env.SFTP_SOURCE_DIR = "share/outbound";
     process.env.SFTP_TARGET_S3_BUCKET = "my-bucket";
+    process.env.SFTP_TARGET_S3_PREFIX = "/";
   });
 
   it("throws error when a required variable is not set", async () => {

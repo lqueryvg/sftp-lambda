@@ -5,7 +5,6 @@
     "jest": true
   },
   "rules": {
-    "react/jsx-filename-extension": [1, { "extensions": [".js"] }],
     "no-console": 0,
     "no-await-in-loop": 0
   }

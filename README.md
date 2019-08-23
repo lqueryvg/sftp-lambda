@@ -1,5 +1,7 @@
 # sftp-lambda
 
+![Build Status](https://github.com/vintagesucks/random-starred-repository/workflows/Build/badge.svg)
+
 Serverless lambda functions to sync files between AWS S3 and an SFTP server.
 
 ## Use case

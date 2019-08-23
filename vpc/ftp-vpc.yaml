@@ -1,0 +1,259 @@
+# This file was the original IAC implementation for the ftp VPC.
+# This has been moved to Terraform and can be deleted once the Terraform implementation is working.
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: VPC and subnets for s3-ftp bridge
+Parameters:
+  Stage:
+    Type: String
+    Default: "dev"
+    Description: "The name of the serverless environment (aka stage)."
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+        - Key: STAGE
+          Value: !Ref Stage
+        - Key: Name
+          Value:
+            Ref: AWS::StackName
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: STAGE
+          Value: !Ref Stage
+        - Key: Name
+          Value:
+            Ref: AWS::StackName
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId:
+        Ref: InternetGateway
+      VpcId:
+        Ref: VPC
+  EIP1:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  NatGateway1:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId:
+        Fn::GetAtt:
+          - EIP1
+          - AllocationId
+      SubnetId:
+        Ref: PublicSubnet1
+      Tags:
+        - Key: STAGE
+          Value: !Ref Stage
+        - Key: Name
+          Value:
+            Fn::Join:
+              - "-"
+              - - Ref: AWS::StackName
+                - eu-west-1a
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: eu-west-1a
+      CidrBlock: 10.0.10.0/24
+      Tags:
+        - Key: STAGE
+          Value: !Ref Stage
+        - Key: Name
+          Value:
+            Fn::Join:
+              - "-"
+              - - Ref: AWS::StackName
+                - private
+                - eu-west-1a
+      VpcId:
+        Ref: VPC
+  PrivateRouteTable1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: VPC
+      Tags:
+        - Key: STAGE
+          Value: !Ref Stage
+        - Key: Name
+          Value:
+            Fn::Join:
+              - "-"
+              - - Ref: AWS::StackName
+                - private
+                - eu-west-1a
+  PrivateRouteTableAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: PrivateRouteTable1
+      SubnetId:
+        Ref: PrivateSubnet1
+  PrivateRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      RouteTableId:
+        Ref: PrivateRouteTable1
+      NatGatewayId:
+        Ref: NatGateway1
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: eu-west-1a
+      CidrBlock: 10.0.11.0/24
+      Tags:
+        - Key: STAGE
+          Value: !Ref Stage
+        - Key: Name
+          Value:
+            Fn::Join:
+              - "-"
+              - - Ref: AWS::StackName
+                - public
+                - eu-west-1a
+      VpcId:
+        Ref: VPC
+  PublicRouteTable1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: VPC
+      Tags:
+        - Key: STAGE
+          Value: !Ref Stage
+        - Key: Name
+          Value:
+            Fn::Join:
+              - "-"
+              - - Ref: AWS::StackName
+                - public
+                - eu-west-1a
+  PublicRouteTableAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: PublicRouteTable1
+      SubnetId:
+        Ref: PublicSubnet1
+  PublicRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      RouteTableId:
+        Ref: PublicRouteTable1
+      GatewayId:
+        Ref: InternetGateway
+  LambdaExecutionSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Lambda Execution Security Group
+      VpcId:
+        Ref: VPC
+      Tags:
+        - Key: STAGE
+          Value: !Ref Stage
+        - Key: Name
+          Value:
+            Fn::Join:
+              - "-"
+              - - Ref: AWS::StackName
+                - lambda-exec
+  S3VPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName:
+        Fn::Join:
+          - .
+          - - com.amazonaws
+            - Ref: AWS::Region
+            - s3
+      VpcId:
+        Ref: VPC
+      VpcEndpointType: Gateway
+      RouteTableIds:
+        - !Ref PrivateRouteTable1
+      # SubnetIds:
+      #   - Ref: PrivateSubnet1
+      # PrivateDnsEnabled: true
+      # SecurityGroupIds:
+      #   - Ref: LambdaEndpointSecurityGroup
+  # KmsVPCEndpoint:
+  #   Type: AWS::EC2::VPCEndpoint
+  #   Properties:
+  #     ServiceName:
+  #       Fn::Join:
+  #         - .
+  #         - - com.amazonaws
+  #           - Ref: AWS::Region
+  #           - kms
+  #     VpcId:
+  #       Ref: VPC
+  #     VpcEndpointType: Interface
+  #     SubnetIds:
+  #       - Ref: PrivateSubnet1
+  #     PrivateDnsEnabled: true
+  #     SecurityGroupIds:
+  #       - Ref: LambdaEndpointSecurityGroup
+  # SecretsmanagerVPCEndpoint:
+  #   Type: AWS::EC2::VPCEndpoint
+  #   Properties:
+  #     ServiceName:
+  #       Fn::Join:
+  #         - .
+  #         - - com.amazonaws
+  #           - Ref: AWS::Region
+  #           - secretsmanager
+  #     VpcId:
+  #       Ref: VPC
+  #     VpcEndpointType: Interface
+  #     SubnetIds:
+  #       - Ref: PrivateSubnet1
+  #     PrivateDnsEnabled: true
+  #     SecurityGroupIds:
+  #       - Ref: LambdaEndpointSecurityGroup
+  # LambdaEndpointSecurityGroup:
+  #   Type: AWS::EC2::SecurityGroup
+  #   Properties:
+  #     GroupDescription: Lambda access to VPC endpoints
+  #     VpcId:
+  #       Ref: VPC
+  #     SecurityGroupIngress:
+  #       - SourceSecurityGroupId:
+  #           Ref: LambdaExecutionSecurityGroup
+  #         IpProtocol: tcp
+  #         FromPort: 443
+  #         ToPort: 443
+  #     Tags:
+  #       - Key: STAGE
+  #         Value: !Ref Stage
+  #       - Key: Name
+  #         Value:
+  #           Fn::Join:
+  #             - "-"
+  #             - - Ref: AWS::StackName
+  #               - lambda-endpoint
+Outputs:
+  vpcId:
+    Value: !Ref VPC
+    Description: VPC
+  privateSubnet:
+    Value: !Ref PrivateSubnet1
+    Description: Private Subnet
+  lambdaExecutionSecurityGroup:
+    Value: !Ref LambdaExecutionSecurityGroup
+    Description: Lambda Execution Security Group
+  EIPAddress:
+    Value: !Ref EIP1
+    Description: The public EIP address for whitelisting

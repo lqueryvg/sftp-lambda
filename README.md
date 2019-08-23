@@ -1,6 +1,6 @@
 # sftp-lambda
 
-![Build Status](https://github.com/vintagesucks/random-starred-repository/workflows/Test/badge.svg)
+![Build Status](https://github.com/lqueryvg/sftp-lambda/workflows/Test/badge.svg)
 
 Serverless lambda functions to sync files between AWS S3 and an SFTP server.
 
@@ -65,49 +65,42 @@ Not all variables are required by all lambdas, as described below:
 ## Infrastructure Configuraion
 
 Deployment of related resources (e.g. SQS queues) is up to you.
-Sample configurations are provided (TODO). Serverless is recommended.
+Sample configurations are provided (TODO).
+Serverless is recommended.
 
 ## Design
 
 ### pull (S3 <- SFTP)
 
-- schedule via CloudWatch cron
+- scheduled via CloudWatch cron
 - connects to SFTP server & copy recursive tree structure to S3 bucket
-- moved copies files to `.done` directory (TODO: in same structure ?)
+- moves copied files to `.done` directory (TODO: in same structure ?)
 - on error, this lambda fails
 - TODO: document the target path
 
 ### push (S3 -> SFTP)
 
-- called when a single object is uploaded to S3 bucket
-- first check if object already marked as synced
+- called when a single object is uploaded to an S3 bucket
+- first check if the object already marked as synced
   - TODO: is this necessary ?
-- pushes single file to SFTP server
+- pushes a single file to SFTP server
   - if it succeeds, marks meta data on object as synced
 - on error:
   - push failed event to SQS
-  - the lambda succeeds
-    - the lambda must succeed even though there was an error,
-      otherwise the AWS Lambda service will pushRetry same object,
-      pushing multiple events for the same object into the pushRetry queue
-    - TODO: another approach
-      - the lambda fails & S3 service will try to call it again
-      - use the lambda context object to detect the final re-try
-      - only push SQS message on final pushRetry
-      - this approach is more complicated but might be beneficial if the cause of failure is
-        a transient, fleeting problem on the FTP server, e.g. too many network connections
-        - if the cause of failure is that the FTP server is down, it would be better
-          to call pushRetry later (i.e. the current design)
+  - after pushing the event onto the pushRetry queue, the lambda must SUCCEED
+    - this seems counter-intuitive, but the lambda must succeed even hough there was an error,
+      otherwise the AWS Lambda service will retry the same object,
+      pushing multiple events for the same object onto the pushRetry queue
 
 ### pushRetry (S3 -> SFTP)
 
-- schedule via CloudWatch cron
-- for each failed event message on pushRetry queue
+- scheduled via CloudWatch cron
+- for each failed event message on the pushRetry queue
   - first, check if object already synced
     - TODO: is this necessary ?
-  - write a each file to SFTP server
-  - if successful, delete the message from the pushRetry queue
-- on error, the lambda fails
+  - write the file to the SFTP server
+  - if successful, delete message from the pushRetry queue
+- on error, this lambda should fail
 
 ## Diagrams
 

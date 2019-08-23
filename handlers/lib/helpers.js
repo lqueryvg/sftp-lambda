@@ -10,6 +10,7 @@ const mandatoryVars = {
   push: pushVars,
   pull: [
     "SFTP_TARGET_S3_BUCKET",
+    "SFTP_TARGET_S3_PREFIX",
     "SFTP_SOURCE_DIR",
     "SFTP_FILE_RETENTION_DAYS"
   ],

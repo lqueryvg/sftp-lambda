@@ -25,6 +25,9 @@ const sendFile = async ({ filename, data }) => {
 module.exports.pushFile = async ({ Bucket, Key, isRetry = false }) => {
   const s3Obj = await s3.getObject({ Bucket, Key });
 
+  // Note that if this was a push (not a retry), the S3 object has
+  // either been pushed or over-written. In either case the metadata will
+  // have been cleared, therefore "synced" will not be "true".
   if (s3Obj.Metadata && s3Obj.Metadata.synched === true) {
     console.log(`object already synced: Bucket=${Bucket}, Key=${Key}`);
     return;

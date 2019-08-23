@@ -11,9 +11,14 @@ const pullFile = async (sftp, dirpath, fileinfo) => {
 
   console.log(`file contents = ${fileData}`);
 
+  let targetKey = `${getEnv("SFTP_TARGET_S3_PREFIX")}/${filepath}`;
+  targetKey = targetKey.replace(/^\/*/, "");
+  const bucket = getEnv("SFTP_TARGET_S3_BUCKET");
+  console.log(`copying to ${bucket}/${targetKey}`);
+
   await s3.putObject({
-    Bucket: getEnv("SFTP_TARGET_S3_BUCKET"),
-    Key: filepath
+    Bucket: bucket,
+    Key: targetKey
   });
 
   console.log(`moving ${filepath} to ${dirpath}/.done/`);

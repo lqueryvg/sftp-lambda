@@ -13,7 +13,7 @@ const AWS = require("aws-sdk");
 const s3 = new AWS.S3();
 const sqs = new AWS.SQS();
 
-const { push } = require("../handlers/push");
+const { push } = require("./push");
 
 const s3SamplePutEvent = {
   Records: [

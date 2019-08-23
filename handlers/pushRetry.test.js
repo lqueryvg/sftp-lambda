@@ -12,7 +12,7 @@ const AWS = require("aws-sdk");
 const s3 = new AWS.S3();
 const sqs = new AWS.SQS();
 
-const { pushRetry } = require("../handlers/pushRetry");
+const { pushRetry } = require("./pushRetry");
 
 s3.getObjectPromise.mockReturnValue({
   Metadata: { synched: false },

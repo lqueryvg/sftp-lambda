@@ -23,9 +23,13 @@ const sendFile = async ({ filename, data }) => {
 };
 
 module.exports.pushFile = async ({ Bucket, Key, isRetry = false }) => {
+  // TODO - wrap this in a try catch
+  // if isRetry and the s3 object definitely does not exist, we need
+  // to return silently, so that the SQS error event will be deleted
+  // so that no further retry takes place
   const s3Obj = await s3.getObject({ Bucket, Key });
 
-  // Note that if this was a push (not a retry), the S3 object has
+  // Note that if this was not a retry, the S3 object has
   // either been pushed or over-written. In either case the metadata will
   // have been cleared, therefore "synced" will not be "true".
   if (s3Obj.Metadata && s3Obj.Metadata.synched === true) {

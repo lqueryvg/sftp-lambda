@@ -5,11 +5,10 @@
 Serverless lambda functions to sync files between AWS S3 and an SFTP server.
 
 - [sftp-lambda](#sftp-lambda)
-  - [Characteristics](#characteristics)
+  - [Characteristics & Use Cases](#characteristics--use-cases)
   - [Description](#description)
   - [How it works](#how-it-works)
     - [Activity Diagram](#activity-diagram)
-    - [Sequence Diagram](#sequence-diagram)
   - [Configuration](#configuration)
     - [Environment Variables](#environment-variables)
     - [Custom VPC](#custom-vpc)
@@ -17,15 +16,19 @@ Serverless lambda functions to sync files between AWS S3 and an SFTP server.
     - [pull (S3 <- SFTP)](#pull-s3---sftp)
     - [push (S3 -> SFTP)](#push-s3---sftp)
     - [pushRetry (S3 -> SFTP)](#pushretry-s3---sftp)
+  - [Sequence Diagram](#sequence-diagram)
+  - [State Transitions](#state-transitions)
+    - [Valid State Transitions for push & pushRetry](#valid-state-transitions-for-push--pushretry)
 
-## Characteristics
+## Characteristics & Use Cases
 
 - a 3rd party provides an SFTP server where you need to push / pull files
+- you don't want to run your own SFTP server
+- you don't want to pay for an SFTP service
 - **_YOU_** always initiate the connection (push or pull), not the 3rd party
-- the data that you pull is not needed urgently, i.e. you are happy to pull
-  files less frequently than every minute or every second
-- you don't run your own SFTP server
-- you don't pay for an SFTP service
+- this solution is appropriate for batch, not streaming
+  - the data you pull is not needed urgently, e.g. you are happy to pull
+    files every half hour or even less frequently
 - **_CHEAP_**
   - cheaper than _AWS Transfer for SFTP_
   - **_MUCH_** cheaper if you don't need a static IP address for whitelisting on the FTP server
@@ -74,15 +77,9 @@ Serverless lambda functions to sync files between AWS S3 and an SFTP server.
   - an optional retention period can be configured to purge files from
     the `.done` directory after a configurable number of days
 
-The diagrams in the following sections should help.
-
 ### Activity Diagram
 
 ![Activity Diagram](diagrams/activity.png)
-
-### Sequence Diagram
-
-![Sequence Diagram](diagrams/sequence.png)
 
 ## Configuration
 
@@ -93,6 +90,14 @@ The diagrams in the following sections should help.
 - Implement multiple "flows" (e.g. different target directories, buckets, or FTP servers with their
   own connection information) by deploying multiple instances of the lambdas with relevant variables.
 - Each push "flow" will need it's own SQS queue.
+- It is recommended that the `push` & `pushRetry` lambdas for each flow are configured
+  with parallelism of `1`. This will be slower when writing multiple objects to a bucket
+  but has the following advantages:
+  - It prevents the SFTP server from being over-loaded with multiple simultaneous connects
+  - It prevents some unusual edge cases occuring, for example if you put an S3 object
+    then immediately overwrite it, 2 lambdas would be triggered for the same object,
+    potentially racing each other to put different versions of the same object.
+    Which will win ? It's better to not leave this to chance.
 
 ### Environment Variables
 
@@ -134,14 +139,15 @@ access to an S3 service endpoint so that the Lambda can access the S3 bucket.
 
 ### push (S3 -> SFTP)
 
-- called when a single object is uploaded to an S3 bucket, or an object has been over-written
-- pushes the single file to SFTP server
-  - if successful, mark the meta data on the object as synced
-- on error:
+- Called when a single object is uploaded to an S3 bucket (new or overwrite)
+- Push the single file to SFTP server
+  - If successful, mark the metadata on the object as synced.
+- On error:
   - push the failed event to a pushRetry SQS queue, then **_SUCCEED_**
-    - Note that if the lambda were to fail, the AWS Lambda service will retry
+    - If the lambda were to fail, the AWS Lambda service will retry
       the same object, and we'd end up with multiple events for the same object
-      on the pushRetry queue.
+      on the pushRetry queue. The retry logic should code with this, but it would
+      be wasteful.
 
 ### pushRetry (S3 -> SFTP)
 
@@ -150,7 +156,34 @@ access to an S3 service endpoint so that the Lambda can access the S3 bucket.
   - first, check if object already synced
     - this could happen if the S3 object has been over-written with a newer version
       and successfully transferred via the `push` lambda
-      - note that overwriting an S3 object causes the meta-data to be deleted
+      - note that overwriting an S3 object causes the sync metadata to be deleted
   - write the file to the SFTP server
   - if successful, delete message from the pushRetry queue
 - on error, this lambda should fail
+
+## Sequence Diagram
+
+![Sequence Diagram](diagrams/sequence.png)
+
+## State Transitions
+
+State transition tables and diagrams help to visualise the various situations that can occur,
+and highlight edge cases.
+
+`push` and `pushRetry` are the most complicated, because:
+
+- there is a retry queue
+- at any time a user can overwrite or delete the S3 object.
+
+### Valid State Transitions for push & pushRetry
+
+| State Id | object exists | is synced | is on error Q | put new object | overwrite object | push works | push fails | pushRetry skips | pushRetry works | pushRetry fails | deletes object |
+| -------- | ------------- | --------- | ------------- | -------------- | ---------------- | ---------- | ---------- | --------------- | --------------- | --------------- | -------------- |
+| 1        | no            | -         | no            | 3              | -                | -          | -          | -               | -               | -               | -              |
+| 2        | no            | -         | yes           | 4              | -                | -          | -          | 1               | -               | -               | -              |
+| 3        | yes           | no        | no            | -              | 3                | 5          | 4          | -               | -               | -               | 1              |
+| 4        | yes           | no        | yes           | -              | 4                | 6          | 4          | -               | 5               | 4               | 2              |
+| 5        | yes           | yes       | no            | -              | 3                | -          | -          | -               | -               | -               | 1              |
+| 6        | yes           | yes       | yes           | -              | 4                | -          | -          | 5               | -               | -               | 2              |
+
+![State Diagram](diagrams/state.png)

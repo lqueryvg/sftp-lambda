@@ -16,7 +16,7 @@ const { pushRetry } = require("./pushRetry");
 
 s3.getObjectPromise.mockReturnValue({
   Metadata: { synched: false },
-  body: "sexy"
+  Body: "some data"
 });
 
 describe("pushRetry handler", () => {

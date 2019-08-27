@@ -3,22 +3,32 @@ const { getEnv } = require("./helpers");
 
 const isDir = fileinfo => fileinfo.longname.startsWith("d");
 
-const pullFile = async (sftp, dirpath, fileinfo) => {
+const pullFile = async fileContext => {
+  const { sftp, dirpath, topPath, fileinfo } = fileContext;
+
   const filepath = `${dirpath}/${fileinfo.filename}`;
-  console.log(`pull file ${filepath}`);
+  console.log(`filepath= ${filepath}`);
+  console.log(`dirpath = ${dirpath}`);
+  console.log(`topPath = ${topPath}`);
 
   const fileData = await sftp.readFile(filepath);
 
   console.log(`file contents = ${fileData}`);
 
-  let targetKey = `${getEnv("SFTP_TARGET_S3_PREFIX")}/${filepath}`;
-  targetKey = targetKey.replace(/^\/*/, "");
+  // construct the target S3 key:
+  // add custom prefix and delete initial top level directory
+  const regexp = new RegExp(`^${topPath}`);
+  const targetKey = `${getEnv("SFTP_TARGET_S3_PREFIX")}/${filepath.replace(
+    regexp,
+    ""
+  )}`;
+
   const bucket = getEnv("SFTP_TARGET_S3_BUCKET");
-  console.log(`copying to ${bucket}/${targetKey}`);
 
   await s3.putObject({
     Bucket: bucket,
-    Key: targetKey
+    Key: targetKey,
+    Body: fileData
   });
 
   console.log(`moving ${filepath} to ${dirpath}/.done/`);
@@ -72,9 +82,10 @@ const purgeDoneDir = async dirContext => {
 };
 
 const pullTreeRecursive = async dirContext => {
-  const { sftp, dirpath } = dirContext;
+  const { sftp, dirpath, topPath } = dirContext;
   const dirList = await sftp.readdir(dirpath);
 
+  console.log(`pullTreeRecursive(dirpath=${dirpath}, topPath=${topPath})`);
   await ensureDoneDirExists(sftp, dirList, dirpath);
 
   for (let i = 0; i < dirList.length; i += 1) {
@@ -92,9 +103,19 @@ const pullTreeRecursive = async dirContext => {
         });
       }
     } else {
-      await pullFile(sftp, dirpath, fileinfo);
+      await pullFile({
+        ...dirContext,
+        fileinfo
+      });
     }
   }
 };
 
-module.exports = { pullTreeRecursive };
+const pullTree = async dirContext => {
+  // The top level starting directory will not change as we recurse.
+  // This is so that we can construct a relative path in the target S3 bucket.
+  const { dirpath } = dirContext;
+  await pullTreeRecursive({ ...dirContext, topPath: dirpath });
+};
+
+module.exports = { pullTree };

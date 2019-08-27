@@ -1,0 +1,23 @@
+provider:
+  name: aws
+  runtime: nodejs10.x
+  region: ${opt:region, "eu-west-1"}
+  timeout: 300
+  stage: ${opt:stage, "dev"}
+  stackTags:
+    project: Sample Project
+    another-tag-name: another tag value
+  environment:
+    # These environment variables apply to all functions.
+    SFTP_HOST: some-host
+    SFTP_PORT: 22
+    SFTP_USER: some-user
+    SFTP_PRIVATE_KEY: |
+      -----BEGIN OPENSSH PRIVATE KEY-----
+      the key goes here
+      -----END OPENSSH PRIVATE KEY-----
+
+functions:
+  pull:
+    handler: handlers/pull.pull
+    reservedConcurrency: 1

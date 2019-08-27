@@ -31,6 +31,11 @@ const s3SamplePutEvent = {
 };
 
 describe("push handler", () => {
+  const mockS3GetObjectResponse = {
+    Metadata: { synched: false },
+    Body: "test data"
+  };
+
   beforeAll(() => {
     mockConsole();
   });
@@ -48,10 +53,12 @@ describe("push handler", () => {
   });
 
   it("returns without error and does not try to send if file already synched", async () => {
-    s3.getObjectPromise.mockReturnValue({
-      Metadata: { synched: true },
-      body: "sexy"
-    });
+    const sampleResponse = {
+      ...mockS3GetObjectResponse,
+      Metadata: { synched: "true" }
+    };
+    s3.getObjectPromise.mockReturnValue(sampleResponse);
+
     expect.assertions(1);
     try {
       await push(s3SamplePutEvent);
@@ -62,10 +69,7 @@ describe("push handler", () => {
   });
 
   it("send file with bad config will queue event for pushRetry", async () => {
-    s3.getObjectPromise.mockReturnValue({
-      Metadata: { synched: false },
-      body: "sexy"
-    });
+    s3.getObjectPromise.mockReturnValue(mockS3GetObjectResponse);
 
     delete process.env.SFTP_HOST; // this is the bad config !
     expect.assertions(3);
@@ -80,10 +84,7 @@ describe("push handler", () => {
   });
 
   it("send file write fails, does not throw but tries to close ssh connection and queues event", async () => {
-    s3.getObjectPromise.mockReturnValue({
-      Metadata: { synched: false },
-      body: "sexy"
-    });
+    s3.getObjectPromise.mockReturnValue(mockS3GetObjectResponse);
 
     expect.assertions(4);
     mockSftp.writeFile.mockImplementation(() => {
@@ -108,10 +109,7 @@ describe("push handler", () => {
   });
 
   it("send file succeeds, closes ssh connection and does not queue event", async () => {
-    s3.getObjectPromise.mockReturnValue({
-      Metadata: { synched: false },
-      body: "sexy"
-    });
+    s3.getObjectPromise.mockReturnValue(mockS3GetObjectResponse);
 
     mockSftp.writeFile.mockReset();
     expect.assertions(4);
@@ -120,7 +118,10 @@ describe("push handler", () => {
     } catch (err) {
       expect(err).not.toBeDefined();
     }
-    expect(mockSftp.writeFile).toBeCalledWith("my-file", "sexy");
+    expect(mockSftp.writeFile).toBeCalledWith(
+      "my-file",
+      mockS3GetObjectResponse.Body
+    );
     expect(mockSsh.close).toBeCalled();
     expect(sqs.getQueueUrl).not.toBeCalled();
     expect(sqs.sendMessage).not.toBeCalled();

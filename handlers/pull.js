@@ -1,15 +1,11 @@
 const SSH2Promise = require("ssh2-promise");
 
-const { pullTreeRecursive } = require("./lib/pullTree");
+const { pullTree } = require("./lib/pullTree");
 const { getEnv, getSSHConfig, assertAllVarsSet } = require("./lib/helpers");
-
-// function sleep(ms) {
-//   return new Promise(resolve => setTimeout(resolve, ms));
-// }
 
 // get files from sftp server
 // - called by schedule
-module.exports.pull = async () => {
+module.exports.pull = async (_event, context, callback) => {
   console.log(`pull() invoked`);
 
   const sshconfig = getSSHConfig();
@@ -18,13 +14,14 @@ module.exports.pull = async () => {
   const ssh = await new SSH2Promise(sshconfig);
   const sftp = ssh.sftp();
   try {
-    await pullTreeRecursive({
+    console.log(`source FTP directory is ${getEnv("SFTP_SOURCE_DIR")}`);
+    await pullTree({
       sftp,
       dirpath: getEnv("SFTP_SOURCE_DIR"),
       fileRetentionMilliseconds:
         getEnv("SFTP_FILE_RETENTION_DAYS") * (24 * 60 * 60 * 1000)
     });
-    console.log("done");
+    console.log("pullTree() returned");
   } catch (e) {
     // TODO: add metric for errors
     console.log(e);
@@ -36,4 +33,6 @@ module.exports.pull = async () => {
 
   console.log("closing ssh connection");
   await ssh.close();
+
+  if (callback) callback(null, "Success");
 };

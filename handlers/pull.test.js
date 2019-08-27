@@ -75,12 +75,15 @@ describe("pull", () => {
     ]
   };
 
-  it("recursively gets files and moves files into .done", async () => {
+  it("recursively gets files and moves files into .done and calls callback", async () => {
     mockSftp.readdir = jest
       .fn()
       .mockImplementation(dirpath => testFTPServerTree[dirpath]);
 
-    await pull();
+    const callback = jest.fn();
+    await pull(null, null, callback);
+    expect(callback).toBeCalledWith(null, "Success");
+
     expect(mockSftp.rename).toBeCalledTimes(2);
     expect(mockSftp.rename).toHaveBeenNthCalledWith(
       1,
@@ -105,12 +108,14 @@ describe("pull", () => {
 
     expect(s3.putObject).toBeCalledTimes(2);
     expect(s3.putObject).toHaveBeenNthCalledWith(1, {
+      Body: "some data",
       Bucket: "my-bucket",
-      Key: "share/outbound/f1"
+      Key: "f1"
     });
     expect(s3.putObject).toHaveBeenNthCalledWith(2, {
+      Body: "some data",
       Bucket: "my-bucket",
-      Key: "share/outbound/d1/f2"
+      Key: "d1/f2"
     });
   });
 

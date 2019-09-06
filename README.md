@@ -4,6 +4,10 @@
 
 Serverless lambda functions to sync files between AWS S3 and an SFTP server.
 
+Inspired by https://github.com/gilt/s3-sftp-bridge
+
+## Contents
+
 - [sftp-lambda](#sftp-lambda)
   - [Characteristics & Use Cases](#characteristics--use-cases)
   - [Description](#description)
@@ -13,18 +17,18 @@ Serverless lambda functions to sync files between AWS S3 and an SFTP server.
     - [Environment Variables](#environment-variables)
     - [Custom VPC](#custom-vpc)
   - [Design Details](#design-details)
-    - [pull (S3 <- SFTP)](#pull-s3---sftp)
-    - [push (S3 -> SFTP)](#push-s3---sftp)
-    - [pushRetry (S3 -> SFTP)](#pushretry-s3---sftp)
-  - [Sequence Diagram](#sequence-diagram)
-  - [State Transitions](#state-transitions)
-    - [Valid State Transitions for push & pushRetry](#valid-state-transitions-for-push--pushretry)
+    - [Lambdas](#lambdas)
+      - [pull (S3 <- SFTP)](#pull-s3---sftp)
+      - [push (S3 -> SFTP)](#push-s3---sftp)
+      - [pushRetry (S3 -> SFTP)](#pushretry-s3---sftp)
+    - [Sequence Diagram](#sequence-diagram)
+    - [State Transitions](#state-transitions)
+      - [Valid State Transitions for push & pushRetry](#valid-state-transitions-for-push--pushretry)
 
 ## Characteristics & Use Cases
 
+- you don't want to run your own SFTP server or pay for a service
 - a 3rd party provides an SFTP server where you need to push / pull files
-- you don't want to run your own SFTP server
-- you don't want to pay for an SFTP service
 - **_YOU_** always initiate the connection (push or pull), not the 3rd party
 - this solution is appropriate for batch, not streaming
   - the data you pull is not needed urgently, e.g. you are happy to pull
@@ -32,7 +36,7 @@ Serverless lambda functions to sync files between AWS S3 and an SFTP server.
 - **_CHEAP_**
   - cheaper than _AWS Transfer for SFTP_
   - **_MUCH_** cheaper if you don't need a static IP address for whitelisting on the FTP server
-    - it's just the cost of the Lambdas executions
+    - it's just the cost of the Lambda executions
     - but this is not recommended
       - best practice is to use a static IP and get it whitelisted
   - at least **_FIVE TIMES_** cheaper even if you **_DO_** need a fixed IP
@@ -88,7 +92,7 @@ Serverless lambda functions to sync files between AWS S3 and an SFTP server.
   - Serverless is recommended.
 - Configuration of SFTP details & file / bucket paths is via Lambda environment variables
 - Implement multiple "flows" (e.g. different target directories, buckets, or FTP servers with their
-  own connection information) by deploying multiple instances of the lambdas with relevant variables.
+  own connection information) by deploying multiple instances of the Lambdas with relevant variables.
 - Each push "flow" will need it's own SQS queue.
 - It is recommended that the `push` & `pushRetry` lambdas for each flow are configured
   with parallelism of `1`. This will be slower when writing multiple objects to a bucket
@@ -126,7 +130,9 @@ access to an S3 service endpoint so that the Lambda can access the S3 bucket.
 
 ## Design Details
 
-### pull (S3 <- SFTP)
+### Lambdas
+
+#### pull (S3 <- SFTP)
 
 - scheduled via CloudWatch cron
 - connects to the SFTP server & recursively copies the source directory to the S3 bucket
@@ -137,7 +143,7 @@ access to an S3 service endpoint so that the Lambda can access the S3 bucket.
   - a `.done` directory is created within each directory of the tree structure being copied
 - on error, this lambda will fail
 
-### push (S3 -> SFTP)
+#### push (S3 -> SFTP)
 
 - Called when a single object is uploaded to an S3 bucket (new or overwrite)
 - Push the single file to SFTP server
@@ -149,7 +155,7 @@ access to an S3 service endpoint so that the Lambda can access the S3 bucket.
       on the pushRetry queue. The retry logic should code with this, but it would
       be wasteful.
 
-### pushRetry (S3 -> SFTP)
+#### pushRetry (S3 -> SFTP)
 
 - scheduled via CloudWatch cron
 - for each failed event message on the pushRetry queue
@@ -161,11 +167,11 @@ access to an S3 service endpoint so that the Lambda can access the S3 bucket.
   - if successful, delete message from the pushRetry queue
 - on error, this lambda should fail
 
-## Sequence Diagram
+### Sequence Diagram
 
 ![Sequence Diagram](diagrams/sequence.png)
 
-## State Transitions
+### State Transitions
 
 State transition tables and diagrams help to visualise the various situations that can occur,
 and highlight edge cases.
@@ -173,17 +179,17 @@ and highlight edge cases.
 `push` and `pushRetry` are the most complicated, because:
 
 - there is a retry queue
-- at any time a user can overwrite or delete the S3 object.
+- at any time a user can overwrite or delete the S3 object
 
-### Valid State Transitions for push & pushRetry
+#### Valid State Transitions for push & pushRetry
 
-| State Id | object exists | is synced | is on error Q | put new object | overwrite object | push works | push fails | pushRetry skips | pushRetry works | pushRetry fails | deletes object |
-| -------- | ------------- | --------- | ------------- | -------------- | ---------------- | ---------- | ---------- | --------------- | --------------- | --------------- | -------------- |
-| 1        | no            | -         | no            | 3              | -                | -          | -          | -               | -               | -               | -              |
-| 2        | no            | -         | yes           | 4              | -                | -          | -          | 1               | -               | -               | -              |
-| 3        | yes           | no        | no            | -              | 3                | 5          | 4          | -               | -               | -               | 1              |
-| 4        | yes           | no        | yes           | -              | 4                | 6          | 4          | -               | 5               | 4               | 2              |
-| 5        | yes           | yes       | no            | -              | 3                | -          | -          | -               | -               | -               | 1              |
-| 6        | yes           | yes       | yes           | -              | 4                | -          | -          | 5               | -               | -               | 2              |
+| State Id | object exists | is synced | is on error Q | Next State | put new object | overwrite object | push works | push fails | pushRetry skips | pushRetry works | pushRetry fails | deletes object |
+| -------- | ------------- | --------- | ------------- | ---------- | -------------- | ---------------- | ---------- | ---------- | --------------- | --------------- | --------------- | -------------- |
+| 1        | no            | -         | no            | ->         | 3              | -                | -          | -          | -               | -               | -               | -              |
+| 2        | no            | -         | yes           | ->         | 4              | -                | -          | -          | 1               | -               | -               | -              |
+| 3        | yes           | no        | no            | ->         | -              | 3                | 5          | 4          | -               | -               | -               | 1              |
+| 4        | yes           | no        | yes           | ->         | -              | 4                | 6          | 4          | -               | 5               | 4               | 2              |
+| 5        | yes           | yes       | no            | ->         | -              | 3                | -          | -          | -               | -               | -               | 1              |
+| 6        | yes           | yes       | yes           | ->         | -              | 4                | -          | -          | 5               | -               | -               | 2              |
 
 ![State Diagram](diagrams/state.png)

@@ -4,16 +4,39 @@ const s3 = new AWS.S3({ apiVersion: "2006-03-01" });
 
 const getObject = async params => {
   const { Bucket, Key } = params;
-  console.log(`putS3Object: bucket=${Bucket}, key=${Key}`);
+  console.log(`s3.getObject: bucket=${Bucket}, key=${Key}`);
 
-  return s3.getObject(params).promise();
+  const response = await s3.getObject(params).promise();
+  console.log(JSON.stringify(response));
+  return response;
 };
 
 const putObject = async params => {
-  const { Bucket, Key } = params;
-  console.log(`putS3Object: bucket=${Bucket}, key=${Key}`);
+  const { Bucket } = params;
+  let { Key } = params;
+  Key = Key.replace(/^\/*/, ""); // delete initial slashes
+  Key = Key.replace(/\/\/+/, "/"); // change double slashes to single slash
+  Key = Key.replace(/\/*/, ""); // change trailing slash
+  console.log(`s3.putObject: bucket=${Bucket}, key=${Key}`);
+  // eslint-disable-next-line no-param-reassign
+  params.Key = Key;
 
   return s3.putObject(params).promise();
 };
 
-module.exports = { getObject, putObject };
+const setObjectSynched = async params => {
+  const { Bucket, Key } = params;
+
+  const response = await s3
+    .copyObject({
+      ...params,
+      CopySource: `${Bucket}/${Key}`,
+      Metadata: { Synched: "true" },
+      MetadataDirective: "REPLACE"
+    })
+    .promise();
+  console.log(JSON.stringify(response));
+  return response;
+};
+
+module.exports = { getObject, putObject, setObjectSynched };

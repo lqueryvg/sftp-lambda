@@ -9,6 +9,7 @@ Inspired by https://github.com/gilt/s3-sftp-bridge
 ## Contents
 
 - [sftp-lambda](#sftp-lambda)
+  - [Contents](#contents)
   - [Characteristics & Use Cases](#characteristics--use-cases)
   - [Description](#description)
   - [How it works](#how-it-works)
@@ -62,12 +63,11 @@ Inspired by https://github.com/gilt/s3-sftp-bridge
   - triggered whenever a file is uploaded to an S3 bucket
   - the file is immediately transfered to the configured FTP server
   - every S3 object will be transferred in its own lambda & SFTP connection
-    - lots of files means lots of separate connections
-      - if you are not happy about this,
-        then maybe this is not the best tool for your use case
+    - recommend Lambda parallelism of `1` to avoid certain edge cases (when user
+      over-writes and object which is currently being transferred)
   - S3 metadata on each object is updated to indicate that the object has been
     successfully transferred
-  - failures are sent to an SQS queue for later pushRetry
+  - failures are sent to an SQS queue for later `pushRetry`
 
 - S3 from SFTP (`pull`)
   - pulls multiple files in one connection
@@ -111,11 +111,12 @@ Not all variables are required by all lambdas, as described below:
 | ------------------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | SFTP_HOST, SFTP_PORT, SFTP_USER | all                 | SSH (SFTP) connection information                                                                                                                                |
 | SFTP_PRIVATE_KEY                | all                 | SSH private key (the key multiline contents, not the filename)                                                                                                   |
-| SFTP_RETRY_QUEUE_NAME           | push, pushRetry     | SQS pushRetry queue name                                                                                                                                         |
 | SFTP_TARGET_S3_BUCKET           | pull                | target S3 bucket                                                                                                                                                 |
 | SFTP_TARGET_S3_PREFIX           | pull                | target S3 object key prefix                                                                                                                                      |
 | SFTP_SOURCE_DIR                 | pull                | source directory to pull from                                                                                                                                    |
 | SFTP_FILE_RETENTION_DAYS        | pull                | how many days after file transfer to keep a file on the source SFTP server (in the `.done` directory) before deleting. Set this to zero to disable this feature. |
+| SFTP_RETRY_QUEUE_NAME           | push, pushRetry     | SQS pushRetry queue name                                                                                                                                         |
+| SFTP_TARGET_DIR                 | push, pushRetry     | target directory on FTP server                                                                                                                                   |
 
 ### Custom VPC
 

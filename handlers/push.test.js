@@ -46,6 +46,7 @@ describe("push handler", () => {
     process.env.SFTP_PORT = 2222;
     process.env.SFTP_PRIVATE_KEY = "some-key";
     process.env.SFTP_RETRY_QUEUE_NAME = "test-pushRetry-queue";
+    process.env.SFTP_TARGET_DIR = "/test-target";
   });
   afterEach(() => {
     sqs.getQueueUrl.mockClear();
@@ -119,7 +120,7 @@ describe("push handler", () => {
       expect(err).not.toBeDefined();
     }
     expect(mockSftp.writeFile).toBeCalledWith(
-      "my-file",
+      `${process.env.SFTP_TARGET_DIR}/my-file`,
       mockS3GetObjectResponse.Body
     );
     expect(mockSsh.close).toBeCalled();

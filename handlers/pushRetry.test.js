@@ -30,6 +30,7 @@ describe("pushRetry handler", () => {
     process.env.SFTP_PORT = 2222;
     process.env.SFTP_PRIVATE_KEY = "some-key";
     process.env.SFTP_RETRY_QUEUE_NAME = "my-pushRetry-queue";
+    process.env.SFTP_TARGET_DIR = "/test-target";
   });
 
   afterEach(() => {

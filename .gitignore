@@ -7,8 +7,9 @@ coverage/
 .serverless
 .DS_Store
 
-#VS code directories 
-.vscode
+#VS code directories
+**/.vscode/*
+!**/.vscode/launch.json
 
 # Public/Private key files
 *.asc
@@ -21,3 +22,4 @@ coverage/
 test-results/
 .idea/
 tmp/
+wip_*.js

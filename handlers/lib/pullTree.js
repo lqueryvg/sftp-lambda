@@ -67,7 +67,7 @@ const ensureDoneDirExists = async (sftp, dirList, dirpath) => {
 // purge any files in done dir which are old
 const purgeDoneDir = async dirContext => {
   const { sftp, dirpath, fileRetentionMilliseconds } = dirContext;
-  // only process done dir if retention is enabled
+  // only process the done dir if retention is enabled
   if (fileRetentionMilliseconds === 0) return;
 
   const dirList = await sftp.readdir(`${dirpath}/.done`);
@@ -90,7 +90,6 @@ const pullTreeRecursive = async dirContext => {
 
   for (let i = 0; i < dirList.length; i += 1) {
     const fileinfo = dirList[i];
-    // const filename = fileinfo.filename;
     const { filename } = fileinfo;
 
     if (isDir(fileinfo)) {

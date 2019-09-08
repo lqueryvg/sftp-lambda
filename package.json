@@ -38,7 +38,7 @@
     "collectCoverage": true,
     "collectCoverageFrom": [
       "handlers/**/*.js",
-      "!src/**/mock-helpers/*.js"
+      "!**/wip_*.js"
     ],
     "automock": false,
     "reporters": [

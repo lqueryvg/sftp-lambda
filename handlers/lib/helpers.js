@@ -4,11 +4,7 @@ const getEnv = varName => {
   return ret;
 };
 
-const pushVars = [
-  "SFTP_RETRY_QUEUE_NAME",
-  // "SFTP_S3_SOURCE_STRIP_PREFIX", // TODO
-  "SFTP_TARGET_DIR"
-];
+const pushVars = ["SFTP_RETRY_QUEUE_NAME", "SFTP_TARGET_DIR"];
 const mandatoryVars = {
   ftp: ["SFTP_HOST", "SFTP_PORT", "SFTP_USER", "SFTP_PRIVATE_KEY"],
   push: pushVars,
@@ -34,16 +30,22 @@ const assertAllVarsSet = operationType => {
   }
 };
 
-const getSSHConfig = () => ({
-  host: getEnv("SFTP_HOST"),
-  port: getEnv("SFTP_PORT"),
-  username: getEnv("SFTP_USER"),
-  privateKey: getEnv("SFTP_PRIVATE_KEY"),
-  reconnect: true,
-  reconnectTries: 3,
-  reconnectDelay: 2000,
-  readyTimeout: 20
-});
+const getSSHConfig = () => {
+  const options = {
+    host: getEnv("SFTP_HOST"),
+    port: getEnv("SFTP_PORT"),
+    username: getEnv("SFTP_USER"),
+    privateKey: getEnv("SFTP_PRIVATE_KEY"),
+    reconnect: true,
+    reconnectTries: 3,
+    reconnectDelay: 2000
+  };
+  if (options.host !== "localhost") {
+    // otherwise, this option breaks local docker testing
+    options.readyTimeout = 20;
+  }
+  return options;
+};
 
 module.exports = {
   getSSHConfig,

@@ -15,22 +15,22 @@ const sqs = new AWS.SQS();
 
 const { push } = require("./push");
 
-const s3SamplePutEvent = {
-  Records: [
-    {
-      s3: {
-        bucket: {
-          name: "my-bucket"
-        },
-        object: {
-          key: "my-path/my-file"
+describe("push handler", () => {
+  const s3SamplePutEvent = {
+    Records: [
+      {
+        s3: {
+          bucket: {
+            name: "my-bucket"
+          },
+          object: {
+            key: "my-path/my-file"
+          }
         }
       }
-    }
-  ]
-};
+    ]
+  };
 
-describe("push handler", () => {
   const mockS3GetObjectResponse = {
     Metadata: { synched: false },
     Body: "test data"
@@ -47,6 +47,11 @@ describe("push handler", () => {
     process.env.SFTP_PRIVATE_KEY = "some-key";
     process.env.SFTP_RETRY_QUEUE_NAME = "test-pushRetry-queue";
     process.env.SFTP_TARGET_DIR = "/test-target";
+    process.env.SFTP_SOURCE_S3_REGEXP_STRIP = "my-path";
+    mockSftp.mockStats.isDirectory.mockReturnValue(true);
+    mockSftp.stat.mockResolvedValue(mockSftp.mockStats);
+    s3.getObjectPromise.mockReturnValue(mockS3GetObjectResponse);
+    mockSftp.writeFile.mockReset();
   });
   afterEach(() => {
     sqs.getQueueUrl.mockClear();
@@ -70,8 +75,6 @@ describe("push handler", () => {
   });
 
   it("send file with bad config will queue event for pushRetry", async () => {
-    s3.getObjectPromise.mockReturnValue(mockS3GetObjectResponse);
-
     delete process.env.SFTP_HOST; // this is the bad config !
     expect.assertions(3);
     try {
@@ -85,8 +88,6 @@ describe("push handler", () => {
   });
 
   it("send file write fails, does not throw but tries to close ssh connection and queues event", async () => {
-    s3.getObjectPromise.mockReturnValue(mockS3GetObjectResponse);
-
     expect.assertions(4);
     mockSftp.writeFile.mockImplementation(() => {
       throw new Error();
@@ -96,7 +97,7 @@ describe("push handler", () => {
     } catch (err) {
       expect(err).not.toBeDefined();
     }
-    expect(mockSftp.writeFile).toBeCalled();
+    expect(mockSftp.stat).toBeCalled();
     expect(mockSsh.close).toBeCalled();
     expect(sqs.getQueueUrl).toBeCalled();
     const expectedMessage = {
@@ -109,16 +110,34 @@ describe("push handler", () => {
     expect(sqs.sendMessage).toBeCalledWith(expectedMessage);
   });
 
-  it("send file succeeds, closes ssh connection and does not queue event", async () => {
-    s3.getObjectPromise.mockReturnValue(mockS3GetObjectResponse);
+  it("queues event if stat on target dir throws No such file error", async () => {
+    expect.assertions(1);
+    mockSftp.stat.mockImplementation(() => {
+      throw new Error("No such file");
+    });
+    await push(s3SamplePutEvent);
+    expect(sqs.getQueueUrl).toBeCalled();
+  });
 
-    mockSftp.writeFile.mockReset();
+  it("queues event if stat on target dir throws unknown error", async () => {
+    expect.assertions(1);
+    mockSftp.stat.mockImplementation(() => {
+      throw new Error("unknown error");
+    });
+    await push(s3SamplePutEvent);
+    expect(sqs.getQueueUrl).toBeCalled();
+  });
+
+  it("queues event if target dir is not a directory", async () => {
+    expect.assertions(1);
+    mockSftp.mockStats.isDirectory.mockReturnValue(false);
+    await push(s3SamplePutEvent);
+    expect(sqs.getQueueUrl).toBeCalled();
+  });
+
+  it("send file succeeds, closes ssh connection and does not queue event", async () => {
     expect.assertions(4);
-    try {
-      await push(s3SamplePutEvent);
-    } catch (err) {
-      expect(err).not.toBeDefined();
-    }
+    await push(s3SamplePutEvent);
     expect(mockSftp.writeFile).toBeCalledWith(
       `${process.env.SFTP_TARGET_DIR}/my-file`,
       mockS3GetObjectResponse.Body
@@ -126,5 +145,58 @@ describe("push handler", () => {
     expect(mockSsh.close).toBeCalled();
     expect(sqs.getQueueUrl).not.toBeCalled();
     expect(sqs.sendMessage).not.toBeCalled();
+  });
+
+  it("calls mkdir to make trees", async () => {
+    const s3SamplePutEventModified = { ...s3SamplePutEvent };
+    s3SamplePutEventModified.Records[0].s3.object.key = "my-path/dir1/my-file";
+    expect.assertions(1);
+    mockSftp.stat.mockImplementation(async path => {
+      if (path === "/test-target/dir1/") {
+        throw new Error("No such file");
+      } else {
+        return mockSftp.mockStats;
+      }
+    });
+    await push(s3SamplePutEventModified);
+    expect(mockSftp.mkdir).toBeCalledWith("/test-target/dir1/");
+  });
+
+  it("queues event if fails to make tree", async () => {
+    const s3SamplePutEventModified = { ...s3SamplePutEvent };
+    s3SamplePutEventModified.Records[0].s3.object.key = "my-path/dir1/my-file";
+    mockSftp.stat.mockImplementation(async path => {
+      if (path === "/test-target/dir1/") {
+        throw new Error("No such file");
+      } else {
+        return mockSftp.mockStats;
+      }
+    });
+    mockSftp.mkdir.mockImplementation(async () => {
+      throw new Error("mkdir failed");
+    });
+
+    expect.assertions(1);
+    await push(s3SamplePutEventModified);
+    expect(sqs.sendMessage).toBeCalled();
+  });
+
+  it("queues event if stat gives unknown error while making tree", async () => {
+    const s3SamplePutEventModified = { ...s3SamplePutEvent };
+    s3SamplePutEventModified.Records[0].s3.object.key = "my-path/dir1/my-file";
+    mockSftp.stat.mockImplementation(async path => {
+      if (path === "/test-target/dir1/") {
+        throw new Error("bizarre error");
+      } else {
+        return mockSftp.mockStats;
+      }
+    });
+    mockSftp.mkdir.mockImplementation(async () => {
+      throw new Error("mkdir failed");
+    });
+
+    expect.assertions(1);
+    await push(s3SamplePutEventModified);
+    expect(sqs.sendMessage).toBeCalled();
   });
 });

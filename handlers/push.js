@@ -13,7 +13,7 @@ module.exports.push = async event => {
   const { s3 } = event.Records[0];
   const Bucket = s3.bucket.name;
   const Key = s3.object.key;
-  console.log(`Bucket=${Bucket}, Key=${Key}`);
+  console.log(`push(): Bucket=${Bucket}, Key=${Key}`);
 
   await pushFile({ Bucket, Key });
 };

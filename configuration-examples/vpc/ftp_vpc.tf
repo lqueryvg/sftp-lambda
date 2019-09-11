@@ -42,20 +42,6 @@ resource "aws_route_table_association" "ftpPrivateRouteTableAssociation" {
   subnet_id      = "${aws_subnet.ftpPrivate.id}"
 }
 
-resource "aws_vpc_endpoint" "s3" {
-  vpc_id       = "${aws_vpc.ftp.id}"
-  service_name = "com.amazonaws.eu-west-1.s3"
-
-  route_table_ids = [
-    "${aws_route_table.ftpPrivateRouteTable.id}",
-  ]
-
-  tags = "${merge(
-    local.tags,
-    map("Name", "ftpS3Endpoint"),
-  )}"
-}
-
 resource "aws_security_group" "ftpLambdaSecurityGroup" {
   name        = "ftpLambdaSecurityGroup"
   description = "FTP Lambda Execution Security Group"

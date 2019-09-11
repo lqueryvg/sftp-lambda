@@ -123,9 +123,7 @@ Not all variables are required by all lambdas, as described below:
 Setup a custom VPC if you want a fixed IP address.
 
 The approach here is to run the Lambdas in a private subnet and route via a NAT
-in a public subnet which has an EIP (fixed IP address). Note that since the
-Lambda is running in a private subnet, the private subnet needs to be given
-access to an S3 service endpoint so that the Lambda can access the S3 bucket.
+in a public subnet which has an EIP (fixed IP address).
 
 ![Custom VPC](diagrams/vpc.png)
 

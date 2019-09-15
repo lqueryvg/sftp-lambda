@@ -48,10 +48,10 @@ describe("push handler", () => {
     process.env.SFTP_RETRY_QUEUE_NAME = "test-pushRetry-queue";
     process.env.SFTP_TARGET_DIR = "/test-target";
     process.env.SFTP_SOURCE_S3_REGEXP_STRIP = "my-path";
-    mockSftp.mockStats.isDirectory.mockReturnValue(true);
-    mockSftp.stat.mockResolvedValue(mockSftp.mockStats);
+    process.env.SFTP_SSH_READY_TIMEOUT_SECONDS = 10;
+    process.env.SFTP_PUSH_TIMEOUT_SECONDS = 20;
     s3.getObjectPromise.mockReturnValue(mockS3GetObjectResponse);
-    mockSftp.writeFile.mockReset();
+    mockSsh.initMocks();
   });
   afterEach(() => {
     sqs.getQueueUrl.mockClear();
@@ -111,7 +111,6 @@ describe("push handler", () => {
   });
 
   it("queues event if stat on target dir throws No such file error", async () => {
-    expect.assertions(1);
     mockSftp.stat.mockImplementation(() => {
       throw new Error("No such file");
     });
@@ -120,7 +119,6 @@ describe("push handler", () => {
   });
 
   it("queues event if stat on target dir throws unknown error", async () => {
-    expect.assertions(1);
     mockSftp.stat.mockImplementation(() => {
       throw new Error("unknown error");
     });
@@ -129,14 +127,12 @@ describe("push handler", () => {
   });
 
   it("queues event if target dir is not a directory", async () => {
-    expect.assertions(1);
     mockSftp.mockStats.isDirectory.mockReturnValue(false);
     await push(s3SamplePutEvent);
     expect(sqs.getQueueUrl).toBeCalled();
   });
 
   it("send file succeeds, closes ssh connection and does not queue event", async () => {
-    expect.assertions(4);
     await push(s3SamplePutEvent);
     expect(mockSftp.writeFile).toBeCalledWith(
       `${process.env.SFTP_TARGET_DIR}/my-file`,
@@ -150,7 +146,6 @@ describe("push handler", () => {
   it("calls mkdir to make trees", async () => {
     const s3SamplePutEventModified = { ...s3SamplePutEvent };
     s3SamplePutEventModified.Records[0].s3.object.key = "my-path/dir1/my-file";
-    expect.assertions(1);
     mockSftp.stat.mockImplementation(async path => {
       if (path === "/test-target/dir1/") {
         throw new Error("No such file");
@@ -176,7 +171,6 @@ describe("push handler", () => {
       throw new Error("mkdir failed");
     });
 
-    expect.assertions(1);
     await push(s3SamplePutEventModified);
     expect(sqs.sendMessage).toBeCalled();
   });
@@ -195,7 +189,6 @@ describe("push handler", () => {
       throw new Error("mkdir failed");
     });
 
-    expect.assertions(1);
     await push(s3SamplePutEventModified);
     expect(sqs.sendMessage).toBeCalled();
   });

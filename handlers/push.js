@@ -2,7 +2,7 @@ const { pushFile } = require("./lib/pushFile");
 
 // put single file to sftp server
 // - triggered by S3 putObject event
-module.exports.push = async event => {
+module.exports.push = async (event, context, callback) => {
   console.log(`push() invoked`);
 
   // Note: DO NOT assert that the config is correct at this point
@@ -15,5 +15,5 @@ module.exports.push = async event => {
   const Key = s3.object.key;
   console.log(`push(): Bucket=${Bucket}, Key=${Key}`);
 
-  await pushFile({ Bucket, Key });
+  await pushFile({ Bucket, Key, callback });
 };

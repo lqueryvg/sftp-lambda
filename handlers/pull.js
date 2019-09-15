@@ -24,7 +24,7 @@ module.exports.pull = async (_event, context, callback) => {
     console.log("pullTree() returned");
   } catch (e) {
     // TODO: add metric for errors
-    console.log(e);
+    console.error(`ERROR: ${e.message}`);
     if (e.code !== "ECONNREFUSED") {
       await ssh.close();
     }

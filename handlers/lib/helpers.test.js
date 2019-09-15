@@ -6,6 +6,7 @@ describe("helpers tests", () => {
     process.env.SFTP_USER = "demo";
     process.env.SFTP_PORT = 2222;
     process.env.SFTP_PRIVATE_KEY = "some-key";
+    process.env.SFTP_SSH_READY_TIMEOUT_SECONDS = "5";
   });
 
   it("sets readyTimeout when not localhost", async () => {

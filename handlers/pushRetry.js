@@ -10,6 +10,12 @@ module.exports.pushRetry = async () => {
   const q = await sqs.getQueue();
   const data = await sqs.getMessages(q);
 
+  console.log(`pushRetry(): data=${JSON.stringify(data)}`);
+  if (!data.Messages) {
+    console.log("No messages to process, exiting.");
+    return;
+  }
+
   const numMessages = data.Messages.length;
   console.log(`found ${numMessages} messages`);
   for (let i = 0; i < numMessages; i += 1) {

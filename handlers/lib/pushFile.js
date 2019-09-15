@@ -5,6 +5,7 @@ const helpers = require("./helpers");
 const sqs = require("./sqs");
 const s3 = require("./s3");
 const { assertAllVarsSet } = require("./helpers");
+const { resolvePromiseWithTimeout } = require("./resolvePromiseWithTimeout");
 
 const makeTree = async (sftp, topDir, pathToCreate) => {
   console.log(
@@ -53,10 +54,11 @@ const sendFile = async ({ filename, data }) => {
     try {
       stats = await sftp.stat(targetDir);
     } catch (error) {
-      console.log(error.message);
+      console.log(`sendFile(): caught error '${error.message}'`);
       if (error.message === "No such file") {
         throw new Error(`ERROR: SFTP_TARGET_DIR ${targetDir} does not exist`);
       }
+      console.log(`sendFile(): throwing error`);
       throw error;
     }
     if (!stats.isDirectory()) {
@@ -78,29 +80,27 @@ const sendFile = async ({ filename, data }) => {
   await ssh.close();
 };
 
-module.exports.pushFile = async ({ Bucket, Key, isRetry = false }) => {
-  // TODO - wrap this in a try catch
+const pushFileInternal = async ({ Bucket, Key }) => {
   // if isRetry and the s3 object definitely does not exist, we need
   // to return silently, so that the SQS error event will be deleted
   // so that no further retry takes place
   const response = await s3.getObject({ Bucket, Key });
-  // console.log(`response=${response}`);
-  console.log(
-    `pushFile(): response.Body=${response.Body.toString().replace(/\n$/, "")}`
-  );
+  // console.log(
+  //   `pushFile(): response.Body=${response.Body.toString().replace(/\n$/, "")}`
+  // );
 
+  // await sleep(10000);
   // Note that if this was not a retry, the S3 object has
   // either been pushed or over-written. In either case the metadata will
   // have been cleared, therefore "synced" will not be "true".
-  console.log(
-    `pushFile(): response.Metadata.synched=${response.Metadata.synched}`
-  );
   if (response.Metadata && response.Metadata.synched === "true") {
     console.log(
-      `pushFile(): object already synched: Bucket=${Bucket}, Key=${Key}`
+      `pushFileInternal(): object already synched: Bucket=${Bucket}, Key=${Key}`
     );
     return;
   }
+
+  console.log(`pushFileInternal(): object NOT already synched`);
 
   let targetPath = Key;
   const regexpString = process.env.SFTP_SOURCE_S3_REGEXP_STRIP;
@@ -108,17 +108,23 @@ module.exports.pushFile = async ({ Bucket, Key, isRetry = false }) => {
     const regexp = new RegExp(regexpString);
     targetPath = Key.replace(regexp, "");
     console.log(
-      `pushFile(): strip ${regexpString} from key ${Key} = ${targetPath}`
+      `pushFileInternal(): strip ${regexpString} from key ${Key} = ${targetPath}`
     );
   }
 
+  assertAllVarsSet("push");
+  await sendFile({ filename: targetPath, data: response.Body });
+  await s3.setObjectSynched({ Bucket, Key });
+};
+
+module.exports.pushFile = async ({ Bucket, Key, isRetry = false }) => {
   try {
-    assertAllVarsSet("push");
-    // await sendFile({ filename: path.basename(Key), data: response.Body });
-    await sendFile({ filename: targetPath, data: response.Body });
-    await s3.setObjectSynched({ Bucket, Key });
+    await resolvePromiseWithTimeout(
+      pushFileInternal({ Bucket, Key }),
+      helpers.getEnv("SFTP_PUSH_TIMEOUT_SECONDS")
+    );
   } catch (error) {
-    console.log(error);
+    console.log(`pushFile(): caught error "${error}"`);
     if (isRetry) {
       throw error;
     } else {
@@ -133,7 +139,12 @@ module.exports.pushFile = async ({ Bucket, Key, isRetry = false }) => {
 
       console.log("pushFile(): queuing event for later retry...");
       const q = await sqs.getQueue();
+      console.log(`pushFile(): q = ${JSON.stringify(q)}`);
+
       await sqs.addMessage(q, { Bucket, Key });
+      // console.log("calling exit");
+      // callback();
+      // process.exit(0);
     }
   }
 };

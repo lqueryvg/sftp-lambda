@@ -4,6 +4,7 @@ jest.mock("ssh2-promise");
 const ssh = require("ssh2-promise");
 
 const mockSsh = ssh();
+mockSsh.initMocks();
 const mockSftp = mockSsh.sftp();
 
 jest.mock("aws-sdk");
@@ -20,10 +21,6 @@ s3.getObjectPromise.mockReturnValue({
 });
 
 describe("pushRetry handler", () => {
-  beforeAll(() => {
-    mockConsole();
-  });
-
   beforeEach(() => {
     process.env.SFTP_HOST = "localhost";
     process.env.SFTP_USER = "demo";
@@ -31,6 +28,10 @@ describe("pushRetry handler", () => {
     process.env.SFTP_PRIVATE_KEY = "some-key";
     process.env.SFTP_RETRY_QUEUE_NAME = "my-pushRetry-queue";
     process.env.SFTP_TARGET_DIR = "/test-target";
+    process.env.SFTP_PUSH_TIMEOUT_SECONDS = 20;
+    process.env.SFTP_SSH_READY_TIMEOUT_SECONDS = 10;
+    mockSsh.initMocks();
+    mockConsole();
   });
 
   afterEach(() => {
@@ -91,5 +92,29 @@ describe("pushRetry handler", () => {
       expect(err).not.toBeDefined();
     }
     expect(sqs.deleteMessage).not.toBeCalled();
+  });
+  it("does nothing when queue empty", async () => {
+    // process.env.SFTP_RETRY_QUEUE_NAME = "my-pushRetry-queue";
+    sqs.receiveMessagePromise.mockReturnValue({});
+    mockSftp.writeFile.mockImplementation(() => {
+      throw new Error();
+    });
+    // expect.assertions(1);
+
+    // try {
+    await pushRetry();
+    // } catch (err) {
+    //   expect(err).not.toBeDefined();
+    // }
+    expect(sqs.deleteMessage).not.toBeCalled();
+
+    // The last call to the mock function was called with the specified args
+    expect(
+      console.log.mock.calls[console.log.mock.calls.length - 1][0]
+    ).toMatch(/No messages to process/);
+
+    // expect(console.log.mock.calls[0][0]).toMatch(
+    //   /ERROR: unexpected error from stat/
+    // );
   });
 });

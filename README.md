@@ -78,6 +78,7 @@ Inspired by https://github.com/gilt/s3-sftp-bridge
     - the SFTP server owner can therefore see which files have been transferred
     - if a file needs to be re-transferred for any reason,
       the SFTP server owner can move it from the `.done` directory back up to its parent directory
+    - note that a file of the same name in `.done` will be over-written by a new file of the same name
   - an optional retention period can be configured to purge files from
     the `.done` directory after a configurable number of days
 
@@ -111,12 +112,14 @@ Not all variables are required by all lambdas, as described below:
 | ------------------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | SFTP_HOST, SFTP_PORT, SFTP_USER | all                 | SSH (SFTP) connection information                                                                                                                                |
 | SFTP_PRIVATE_KEY                | all                 | SSH private key (the key multiline contents, not the filename)                                                                                                   |
+| SFTP_SSH_READY_TIMEOUT_SECONDS  | all                 | timeout for establishing the initial ssh connection (see https://github.com/mscdex/ssh2#client-methods)                                                          |
 | SFTP_TARGET_S3_BUCKET           | pull                | target S3 bucket                                                                                                                                                 |
 | SFTP_TARGET_S3_PREFIX           | pull                | target S3 object key prefix                                                                                                                                      |
 | SFTP_SOURCE_DIR                 | pull                | source directory to pull from                                                                                                                                    |
 | SFTP_FILE_RETENTION_DAYS        | pull                | how many days after file transfer to keep a file on the source SFTP server (in the `.done` directory) before deleting. Set this to zero to disable this feature. |
 | SFTP_RETRY_QUEUE_NAME           | push, pushRetry     | SQS pushRetry queue name                                                                                                                                         |
 | SFTP_TARGET_DIR                 | push, pushRetry     | target directory on FTP server                                                                                                                                   |
+| SFTP_PUSH_TIMEOUT_SECONDS       | push, pushRetry     | overall timeout for pushing a file                                                                                                                               |
 
 ### Custom VPC
 

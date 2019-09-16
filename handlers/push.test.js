@@ -50,7 +50,10 @@ describe("push handler", () => {
     process.env.SFTP_SOURCE_S3_REGEXP_STRIP = "my-path";
     process.env.SFTP_SSH_READY_TIMEOUT_SECONDS = 10;
     process.env.SFTP_PUSH_TIMEOUT_SECONDS = 20;
+    // mockSftp.mockStats.isDirectory.mockReturnValue(true);
+    // mockSftp.stat.mockResolvedValue(mockSftp.mockStats);
     s3.getObjectPromise.mockReturnValue(mockS3GetObjectResponse);
+    // mockSftp.writeFile.mockReset();
     mockSsh.initMocks();
   });
   afterEach(() => {
@@ -127,6 +130,14 @@ describe("push handler", () => {
   });
 
   it("queues event if target dir is not a directory", async () => {
+    mockSftp.mockStats.isDirectory.mockReturnValue(false);
+    await push(s3SamplePutEvent);
+    expect(sqs.getQueueUrl).toBeCalled();
+  });
+
+  it("queues event if env var not set", async () => {
+    delete process.env.SFTP_HOST;
+
     mockSftp.mockStats.isDirectory.mockReturnValue(false);
     await push(s3SamplePutEvent);
     expect(sqs.getQueueUrl).toBeCalled();

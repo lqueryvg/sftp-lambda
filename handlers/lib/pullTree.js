@@ -1,5 +1,5 @@
 const s3 = require("./s3");
-const { getEnv } = require("./helpers");
+const { getEnv } = require("./config");
 
 const isDir = fileinfo => fileinfo.longname.startsWith("d");
 

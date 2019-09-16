@@ -1,11 +1,11 @@
 const { pushFile } = require("./lib/pushFile");
 const sqs = require("./lib/sqs");
-const { assertAllVarsSet } = require("./lib/helpers");
+const { initEnvVars } = require("./lib/config");
 
 module.exports.pushRetry = async () => {
   console.log(`pushRetry() invoked`);
 
-  assertAllVarsSet("pushRetry");
+  initEnvVars("retry");
 
   const q = await sqs.getQueue();
   const data = await sqs.getMessages(q);

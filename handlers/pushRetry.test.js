@@ -45,7 +45,9 @@ describe("pushRetry handler", () => {
     try {
       await pushRetry();
     } catch (err) {
-      expect(err.message).toMatch(/not all required variables are set/);
+      expect(err.message).toMatch(
+        /SFTP_RETRY_QUEUE_NAME must be set for retry operation/
+      );
     }
   });
 
@@ -94,27 +96,17 @@ describe("pushRetry handler", () => {
     expect(sqs.deleteMessage).not.toBeCalled();
   });
   it("does nothing when queue empty", async () => {
-    // process.env.SFTP_RETRY_QUEUE_NAME = "my-pushRetry-queue";
     sqs.receiveMessagePromise.mockReturnValue({});
     mockSftp.writeFile.mockImplementation(() => {
       throw new Error();
     });
-    // expect.assertions(1);
 
-    // try {
     await pushRetry();
-    // } catch (err) {
-    //   expect(err).not.toBeDefined();
-    // }
     expect(sqs.deleteMessage).not.toBeCalled();
 
-    // The last call to the mock function was called with the specified args
     expect(
+      // The last call to the mock function was called with the specified args
       console.log.mock.calls[console.log.mock.calls.length - 1][0]
     ).toMatch(/No messages to process/);
-
-    // expect(console.log.mock.calls[0][0]).toMatch(
-    //   /ERROR: unexpected error from stat/
-    // );
   });
 });

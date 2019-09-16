@@ -1,7 +1,8 @@
 const SSH2Promise = require("ssh2-promise");
 
 const { pullTree } = require("./lib/pullTree");
-const { getEnv, getSSHConfig, assertAllVarsSet } = require("./lib/helpers");
+const { getSSHConfig } = require("./lib/sshConfig");
+const { getEnv, initEnvVars } = require("./lib/config");
 
 // get files from sftp server
 // - called by schedule
@@ -10,7 +11,7 @@ module.exports.pull = async (_event, context, callback) => {
 
   const sshconfig = getSSHConfig();
 
-  assertAllVarsSet("pull");
+  initEnvVars("pull");
   const ssh = await new SSH2Promise(sshconfig);
   const sftp = ssh.sftp();
   try {

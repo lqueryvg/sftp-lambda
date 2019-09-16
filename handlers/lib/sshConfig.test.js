@@ -1,4 +1,4 @@
-const helpers = require("./helpers");
+const helpers = require("./sshConfig");
 
 describe("helpers tests", () => {
   beforeEach(() => {

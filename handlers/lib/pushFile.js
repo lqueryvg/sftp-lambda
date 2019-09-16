@@ -1,10 +1,12 @@
 const SSH2Promise = require("ssh2-promise");
 const path = require("path");
 
-const helpers = require("./helpers");
+const { getEnv } = require("./config");
+const { getSSHConfig } = require("./sshConfig");
+const { initEnvVars } = require("./config");
+
 const sqs = require("./sqs");
 const s3 = require("./s3");
-const { assertAllVarsSet } = require("./helpers");
 const { resolvePromiseWithTimeout } = require("./resolvePromiseWithTimeout");
 
 const makeTree = async (sftp, topDir, pathToCreate) => {
@@ -40,8 +42,8 @@ const makeTree = async (sftp, topDir, pathToCreate) => {
 };
 
 const sendFile = async ({ filename, data }) => {
-  const targetDir = helpers.getEnv("SFTP_TARGET_DIR");
-  const sshconfig = helpers.getSSHConfig();
+  const targetDir = getEnv("SFTP_TARGET_DIR");
+  const sshconfig = getSSHConfig();
   console.log(
     `sendFile(): filename=${filename}, targetDir=${targetDir}, connecting...`
   );
@@ -112,16 +114,17 @@ const pushFileInternal = async ({ Bucket, Key }) => {
     );
   }
 
-  assertAllVarsSet("push");
   await sendFile({ filename: targetPath, data: response.Body });
   await s3.setObjectSynched({ Bucket, Key });
 };
 
 module.exports.pushFile = async ({ Bucket, Key, isRetry = false }) => {
   try {
+    initEnvVars("push");
+
     await resolvePromiseWithTimeout(
       pushFileInternal({ Bucket, Key }),
-      helpers.getEnv("SFTP_PUSH_TIMEOUT_SECONDS")
+      getEnv("SFTP_PUSH_TIMEOUT_SECONDS")
     );
   } catch (error) {
     console.log(`pushFile(): caught error "${error}"`);
@@ -131,7 +134,7 @@ module.exports.pushFile = async ({ Bucket, Key, isRetry = false }) => {
       console.log(
         `ERROR: pushFile() got the following error:\n${error.message}`
       );
-      if (error.message.match(/ERROR: not all required variables are set/)) {
+      if (error.message.match(/must be set for \w+ operation/)) {
         console.error(
           "but this looks like a configuration problem; the retry will never succeed until the configuration is fixed"
         );

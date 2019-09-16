@@ -1,7 +1,7 @@
 const AWS = require("aws-sdk");
 
 const sqs = new AWS.SQS();
-const { getEnv } = require("./helpers");
+const { getEnv } = require("./config");
 
 const getQueue = async () =>
   sqs

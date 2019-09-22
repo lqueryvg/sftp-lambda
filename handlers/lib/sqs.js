@@ -1,6 +1,20 @@
 const AWS = require("aws-sdk");
 
-const sqs = new AWS.SQS();
+let localTestingParams = {};
+
+if (process.env.STAGE && process.env.STAGE === "local") {
+  localTestingParams = {
+    region: "eu-west-1",
+    accessKeyId: "local",
+    secretAccessKey: "local",
+    endpoint: "http://localhost:9324"
+  };
+}
+
+const sqs = new AWS.SQS({
+  ...localTestingParams
+});
+
 const { getEnv } = require("./config");
 
 const getQueue = async () =>

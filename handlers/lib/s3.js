@@ -1,6 +1,20 @@
 const AWS = require("aws-sdk");
 
-const s3 = new AWS.S3({ apiVersion: "2006-03-01" });
+let s3LocalParams = {};
+
+if (process.env.STAGE && process.env.STAGE === "local") {
+  s3LocalParams = {
+    s3ForcePathStyle: true,
+    accessKeyId: "S3RVER", // for serverless-s3-local
+    secretAccessKey: "S3RVER",
+    endpoint: "http://localhost:8000"
+  };
+}
+
+const s3 = new AWS.S3({
+  apiVersion: "2006-03-01",
+  ...s3LocalParams
+});
 
 const getObject = async params => {
   const { Bucket, Key } = params;

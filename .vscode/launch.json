@@ -4,6 +4,13 @@
     {
       "type": "node",
       "request": "launch",
+      "name": "Launch Program",
+      "program": "${workspaceFolder}/integration-test/integration-test.js",
+      "cwd": "${workspaceFolder}/integration-test"
+    },
+    {
+      "type": "node",
+      "request": "launch",
       "name": "manual-pull",
       "program": "${workspaceFolder}/manual-pull-test/pull",
       "skipFiles": ["<node_internals>/**"],

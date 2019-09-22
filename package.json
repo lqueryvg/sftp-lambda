@@ -14,6 +14,8 @@
   "license": "ISC",
   "devDependencies": {
     "braces": ">=2.3.1",
+    "chalk": "^2.4.2",
+    "dotenv": "^8.1.0",
     "eslint": "^5.4.0",
     "eslint-config-airbnb": "^17.1.0",
     "eslint-config-prettier": "^2.9.0",
@@ -26,7 +28,18 @@
     "jest-junit": "^6.4.0",
     "jest-mock-console": "^0.4.0",
     "prettier": "^1.13.7",
-    "pretty-quick": "^1.6.0"
+    "pretty-quick": "^1.6.0",
+    "readline-sync": "^1.4.10",
+    "serverless": "^1.52.0",
+    "serverless-dotenv-plugin": "^2.1.1",
+    "serverless-offline": "^5.11.0",
+    "serverless-offline-sqs": "^2.0.3",
+    "serverless-offline-ssm-provider": "^1.0.5",
+    "serverless-plugin-existing-s3": "^2.4.0",
+    "serverless-pseudo-parameters": "^2.1.0",
+    "serverless-s3-local": "^0.5.0",
+    "shelljs": "^0.8.3",
+    "wait-port": "^0.2.2"
   },
   "dependencies": {
     "aws-sdk": "^2.298.0",

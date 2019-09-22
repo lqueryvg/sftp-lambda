@@ -1,0 +1,14 @@
+version: "3"
+services:
+  ftp:
+    ports:
+      - "${FTP_LOCALHOST_PORT}:22"
+    volumes:
+      - ./tmp/ssh-key/${FTP_SSH_KEYNAME}.pub:/home/demo/.ssh/keys/id_rsa.pub:ro
+      - ./tmp/ftp-share:/home/demo/ftp-share
+    image: "atmoz/sftp"
+    command: /entrypoint demo::1001
+  sqs:
+    image: s12v/elasticmq:latest
+    ports:
+      - "9324:9324"

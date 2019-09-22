@@ -1,0 +1,124 @@
+service: sftp-lambda
+
+package:
+  exclude:
+    - "**"
+  include:
+    - handlers/**
+    - node_modules/**
+    - "!node_modules/aws-sdk/**" # because Lambda environment already includes this
+
+plugins:
+  - serverless-pseudo-parameters
+  - serverless-s3-local
+  - serverless-offline-sqs
+  - serverless-offline
+  - serverless-dotenv-plugin
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+  region: ${opt:region, "eu-west-1"}
+  timeout: 20
+  reservedConcurrency: 1
+  stage: ${opt:stage}
+  stackTags:
+    project: sftp-lambda
+  environment:
+    # The environment variables apply to all functions.
+    STAGE: ${opt:stage}
+    SFTP_HOST: ${self:custom.${self:provider.stage}.ftp.connection.host}
+    SFTP_PORT: ${self:custom.${self:provider.stage}.ftp.connection.port}
+    SFTP_USER: ${self:custom.${self:provider.stage}.ftp.connection.user}
+    SFTP_PRIVATE_KEY: ${self:custom.${self:provider.stage}.ftp.connection.sshPrivateKey}
+    SFTP_SSH_READY_TIMEOUT_SECONDS: 5
+    SFTP_PUSH_TIMEOUT_SECONDS: 10
+
+custom:
+  s3: # local testing
+    port: 8000
+    directory: integration-test/tmp/s3-local # this directory must be already created.
+
+  serverless-offline-sqs: # local testing
+    endpoint: http://0.0.0.0:9324
+    region: ${self:provider.region}
+    accessKeyId: local
+    secretAccessKey: local
+    skipCacheInvalidation: false
+
+  global:
+    push_files_ftp_retry_queue: "${env:LOCAL_RETRY_QUEUE}"
+  local:
+    ftp:
+      bucket: "${env:LOCAL_S3_BUCKET}"
+      connection:
+        host: localhost
+        port: 2222
+        user: demo
+        sshPrivateKey: ${file(integration-test/serverlessGetSSHTestKey.js):sshPrivateKey}
+
+    pull_files:
+      target_s3_prefix: inbound/
+      ftp_source_dir: ftp-share/outbound/
+    push_files:
+      s3_prefix: outbound/
+      ftp_target_dir: ftp-share/inbound/
+      retry_queue: ${self:custom.global.push_files_ftp_retry_queue}
+
+# bucket:
+#   outbound/
+#     files/
+#       dir1/
+#         {outbound-files}
+#       etc...
+#   inbound/
+#     dir1/
+#       {inbound-files}
+# ftp:
+#   ftp-share/
+#     outbound/
+#       dir1/
+#         {outbound-files}
+#     inbound/
+#       files/
+#         dir1/
+#           {files}
+#         dir2/
+#           {files}
+#         etc...
+#
+
+functions:
+  pullFiles:
+    handler: handlers/pull.pull
+    environment:
+      SFTP_SOURCE_DIR: ${self:custom.${self:provider.stage}.pull_files.ftp_source_dir}
+      SFTP_FILE_RETENTION_DAYS: 0
+      SFTP_TARGET_S3_BUCKET: ${self:custom.${self:provider.stage}.ftp.bucket}
+      SFTP_TARGET_S3_PREFIX: ${self:custom.${self:provider.stage}.pull_files.target_s3_prefix}
+    alarms:
+      - functionErrors
+  pushFiles:
+    handler: handlers/push.push
+    environment:
+      SFTP_RETRY_QUEUE_NAME: ${self:custom.${self:provider.stage}.push_files.retry_queue}
+      SFTP_SOURCE_S3_REGEXP_STRIP: ^${self:custom.${self:provider.stage}.push_files.s3_prefix}
+      SFTP_TARGET_DIR: ${self:custom.${self:provider.stage}.push_files.ftp_target_dir}
+    events:
+      - s3:
+          bucket: ${self:custom.${self:provider.stage}.ftp.bucket}
+          event: s3:ObjectCreated:*
+          rules:
+            - prefix: ${self:custom.${self:provider.stage}.push_files.s3_prefix}
+          existing: true
+    alarms:
+      - functionErrors
+
+  pushFilesRetry:
+    handler: handlers/pushRetry.pushRetry
+    environment:
+      SFTP_RETRY_QUEUE_NAME: ${self:custom.${self:provider.stage}.push_files.retry_queue}
+      SFTP_SOURCE_S3_REGEXP_STRIP: ^${self:custom.${self:provider.stage}.push_files.s3_prefix}
+      SFTP_TARGET_DIR: ${self:custom.${self:provider.stage}.push_files.ftp_target_dir}
+    alarms:
+      - functionErrors

@@ -5,6 +5,14 @@ const mockStats = {
   // isFile: jest.fn().mockResolvedValue(true)
 };
 
+const NO_SUCH_FILE = 2; // in-line with SFTPStream.STATUS_CODE, see https://github.com/mscdex/ssh2-streams/blob/master/SFTPStream.md#sftpstream-static-constants
+
+const createNoSuchFileError = () => {
+  const err = new Error("couldn't find the file");
+  err.code = NO_SUCH_FILE;
+  return err;
+};
+
 const mockSftp = {
   mkdir: jest.fn(),
   readFile: jest.fn(),
@@ -13,7 +21,8 @@ const mockSftp = {
   stat: jest.fn(),
   writeFile: jest.fn(),
   unlink: jest.fn(),
-  mockStats
+  mockStats,
+  createNoSuchFileError
 };
 
 const close = jest.fn();

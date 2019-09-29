@@ -222,8 +222,9 @@ describe("pull", () => {
     mockSftp.readdir = jest
       .fn()
       .mockImplementation(dirpath => testFTPServerTree[dirpath]);
+
     mockSftp.stat = jest.fn().mockImplementation(() => {
-      throw Error("No such file");
+      throw mockSftp.createNoSuchFileError();
     });
 
     await pull();

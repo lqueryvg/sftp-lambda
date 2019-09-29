@@ -115,7 +115,7 @@ describe("push handler", () => {
 
   it("queues event if stat on target dir throws No such file error", async () => {
     mockSftp.stat.mockImplementation(() => {
-      throw new Error("No such file");
+      throw mockSftp.createNoSuchFileError();
     });
     await push(s3SamplePutEvent);
     expect(sqs.getQueueUrl).toBeCalled();
@@ -159,7 +159,7 @@ describe("push handler", () => {
     s3SamplePutEventModified.Records[0].s3.object.key = "my-path/dir1/my-file";
     mockSftp.stat.mockImplementation(async path => {
       if (path === "/test-target/dir1/") {
-        throw new Error("No such file");
+        throw mockSftp.createNoSuchFileError();
       } else {
         return mockSftp.mockStats;
       }
@@ -173,7 +173,7 @@ describe("push handler", () => {
     s3SamplePutEventModified.Records[0].s3.object.key = "my-path/dir1/my-file";
     mockSftp.stat.mockImplementation(async path => {
       if (path === "/test-target/dir1/") {
-        throw new Error("No such file");
+        throw mockSftp.createNoSuchFileError();
       } else {
         return mockSftp.mockStats;
       }

@@ -1,5 +1,6 @@
 const SSH2Promise = require("ssh2-promise");
 const path = require("path");
+const { SFTP_STATUS_CODE } = require("ssh2");
 
 const { getEnv } = require("./config");
 const { getSSHConfig } = require("./sshConfig");
@@ -28,7 +29,7 @@ const makeTree = async (sftp, topDir, pathToCreate) => {
       try {
         await sftp.stat(fullPath);
       } catch (error) {
-        if (error.message === "No such file") {
+        if (error.code === SFTP_STATUS_CODE.NO_SUCH_FILE) {
           // console.log(`makeTree(): mkdir ${fullPath}`);
           await sftp.mkdir(fullPath);
           // console.log("makeTree(): mkdir complete");
@@ -57,7 +58,7 @@ const sendFile = async ({ filename, data }) => {
       stats = await sftp.stat(targetDir);
     } catch (error) {
       console.log(`sendFile(): caught error '${error.message}'`);
-      if (error.message === "No such file") {
+      if (error.code === SFTP_STATUS_CODE.NO_SUCH_FILE) {
         throw new Error(`ERROR: SFTP_TARGET_DIR ${targetDir} does not exist`);
       }
       console.log(`sendFile(): throwing error`);

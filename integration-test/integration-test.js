@@ -130,7 +130,9 @@ const waitForSFTPAvailable = async () => {
       shell.set("+e");
       ({ code } = shell
         .ShellString("ls -l")
-        .exec("sftp -i tmp/ssh-key/sftptest -P 2222 demo@localhost"));
+        .exec(
+          "sftp -o StrictHostKeyChecking=no -i tmp/ssh-key/sftptest -P 2222 demo@localhost"
+        ));
       shell.set("-e");
       return code === 0;
     },

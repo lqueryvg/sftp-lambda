@@ -23,3 +23,4 @@ test-results/
 .idea/
 tmp/
 wip_*.js
+junit.xml

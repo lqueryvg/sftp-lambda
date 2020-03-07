@@ -7,15 +7,27 @@ const interactive = false;
 const sleep = milliseconds =>
   new Promise(resolve => setTimeout(resolve, milliseconds));
 
-const waitFor = async ({ funcToBeTrue, retries, intervalMilliseconds }) => {
-  let attemptNumber = 1;
-  while (attemptNumber <= retries) {
-    console.log(`attempt number ${attemptNumber} of ${retries}`);
+const waitFor = async ({
+  funcToBeTrue,
+  initialRetries,
+  intervalMilliseconds
+}) => {
+  let retriesRemaining = initialRetries;
+  while (retriesRemaining > 0) {
+    console.info(
+      chalk.yellow(
+        `Attempt ${initialRetries - retriesRemaining + 1} of ${initialRetries}`
+      )
+    );
     if (await funcToBeTrue()) {
-      console.error(chalk.green("success!"));
+      console.info(
+        chalk.yellow(
+          `-> Attempt ${initialRetries - retriesRemaining + 1} succeeded :-)`
+        )
+      );
       return;
     }
-    attemptNumber += 1;
+    retriesRemaining -= 1;
     await sleep(intervalMilliseconds);
   }
   console.error(chalk.red("wait timeout, exiting..."));
@@ -34,7 +46,7 @@ const header = string => {
 const run = async (func, params, additionalMessage) => {
   let startingMessage = `${func.name}()`;
   if (additionalMessage)
-    startingMessage = `${startingMessage} (${additionalMessage})`;
+    startingMessage = `${startingMessage} - ${additionalMessage}`;
   header(startingMessage);
   const returnValue = await func(params);
   console.log(`${func.name}() end`);

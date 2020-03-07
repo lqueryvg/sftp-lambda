@@ -40,7 +40,7 @@ const waitForSQSMessages = async ({ expectedNumber }) => {
       console.log(`hoping for ${expectedNumber} SQS messages...`);
       return (await countSQSMessages()) === expectedNumber;
     },
-    retries: 5,
+    initialRetries: 5,
     intervalMilliseconds: 1000
   });
 };
@@ -96,7 +96,7 @@ const createSQSQueue = async () => {
       }
       return true;
     },
-    retries: 5,
+    initialRetries: 5,
     intervalMilliseconds: 1000
   });
 };
@@ -134,7 +134,7 @@ const waitForSFTPAvailable = async () => {
       shell.set("-e");
       return code === 0;
     },
-    retries: 5,
+    initialRetries: 5,
     intervalMilliseconds: 1000
   });
 };
@@ -159,18 +159,38 @@ const testPushRetry = async () => {
 
       return stats.isFile();
     },
-    retries: 5,
+    initialRetries: 5,
     intervalMilliseconds: 1000
   });
 };
 
-const testPull = () => {
+const invokePull = async () => {
   shell.exec(
     "npx sls invoke local -f pullFiles --env local --stage local -d '{}'",
     {
       cwd: ".."
     }
   );
+};
+
+const checkPullWorked = async () => {
+  // check that the 2 files arrived in S3
+  for (let i = 1; i <= 2; i += 1) {
+    const filename = `inbound/files/file${i}.csv`;
+    const bucket = "local-ftp-bucket";
+    const data = await s3.getObject({
+      Bucket: bucket,
+      Key: filename
+    });
+    console.log(JSON.stringify(data));
+    const receivedText = data.Body.toString();
+    const expectedText = `data${i}\n`;
+    if (receivedText !== expectedText) {
+      throw new Error(
+        `expected local s3://${bucket}/${filename} to contain data "${expectedText}" but received "${receivedText}" instead`
+      );
+    }
+  }
 };
 
 const stopServerless = serverlessProcess => {
@@ -198,7 +218,8 @@ const main = async () => {
   await run(testPushRetry, {}, "should work now that FTP is up");
   await run(waitForSQSMessages, { expectedNumber: 0 });
 
-  await run(testPull);
+  await run(invokePull);
+  await run(checkPullWorked);
 
   await run(stopServerless, serverlessProcess);
   await run(dockerDown);

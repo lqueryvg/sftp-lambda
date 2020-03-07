@@ -1,5 +1,11 @@
 service: sftp-lambda
 
+# This file is used for integration tests.
+# It's designed to be used with offline serverless, S3 & SQS emulation
+# to connect to a local dockerised ftp container for testing.
+#
+# See https://serverless.com/ for more info about the Serverless framework.
+
 package:
   exclude:
     - "**"
@@ -57,6 +63,16 @@ custom:
         user: demo
         sshPrivateKey: ${file(integration-test/serverlessGetSSHTestKey.js):sshPrivateKey}
 
+    # Define the following connection structure for testing:
+    #
+    # {bucket}:
+    #   outbound/
+    #   inbound/
+    # {ftp}:
+    #   ftp-share/
+    #     outbound/
+    #     inbound/
+    #
     pull_files:
       target_s3_prefix: inbound/
       ftp_source_dir: ftp-share/outbound/
@@ -64,29 +80,6 @@ custom:
       s3_prefix: outbound/
       ftp_target_dir: ftp-share/inbound/
       retry_queue: ${self:custom.global.push_files_ftp_retry_queue}
-
-# bucket:
-#   outbound/
-#     files/
-#       dir1/
-#         {outbound-files}
-#       etc...
-#   inbound/
-#     dir1/
-#       {inbound-files}
-# ftp:
-#   ftp-share/
-#     outbound/
-#       dir1/
-#         {outbound-files}
-#     inbound/
-#       files/
-#         dir1/
-#           {files}
-#         dir2/
-#           {files}
-#         etc...
-#
 
 functions:
   pullFiles:

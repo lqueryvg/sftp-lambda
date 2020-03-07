@@ -11,11 +11,7 @@ process.env.SFTP_SOURCE_DIR = "share/outbound";
 process.env.SFTP_TARGET_S3_BUCKET = "dummy_bucket";
 
 const main = async () => {
-  try {
-    pull();
-  } catch (e) {
-    throw e;
-  }
+  pull();
 };
 
 main();

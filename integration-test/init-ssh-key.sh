@@ -15,6 +15,7 @@ ssh-keygen -m PEM -t rsa -N "" -f $FTP_SSH_KEYNAME
 
 echo "Deleting any pre-existing host key from known hosts file..."
 
+set +e
 ssh-keygen -R [localhost]:$FTP_LOCALHOST_PORT 2>/dev/null
 
 echo "ssh initialised"

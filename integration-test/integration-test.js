@@ -56,7 +56,7 @@ const initSSHKey = () => {
 
 const startServerless = async () => {
   const serverlessProcess = await spawn(
-    "npx sls offline start --env local --stage local",
+    "yarn exec -- sls offline start --env local --stage local",
     [],
     {
       cwd: "..",
@@ -130,7 +130,9 @@ const waitForSFTPAvailable = async () => {
       shell.set("+e");
       ({ code } = shell
         .ShellString("ls -l")
-        .exec("sftp -i tmp/ssh-key/sftptest -P 2222 demo@localhost"));
+        .exec(
+          "sftp -o StrictHostKeyChecking=no -i tmp/ssh-key/sftptest -P 2222 demo@localhost"
+        ));
       shell.set("-e");
       return code === 0;
     },
@@ -150,7 +152,7 @@ const testPushRetry = async () => {
     funcToBeTrue: async () => {
       console.log("checking ssh connection...");
       shell.exec(
-        "npx sls invoke local -f pushFilesRetry --env local --stage local -d '{}'",
+        "yarn exec -- sls invoke local -f pushFilesRetry --env local --stage local -d '{}'",
         {
           cwd: ".."
         }
@@ -166,7 +168,7 @@ const testPushRetry = async () => {
 
 const invokePull = async () => {
   shell.exec(
-    "npx sls invoke local -f pullFiles --env local --stage local -d '{}'",
+    "yarn exec -- sls invoke local -f pullFiles --env local --stage local -d '{}'",
     {
       cwd: ".."
     }

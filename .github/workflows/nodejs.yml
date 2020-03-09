@@ -21,5 +21,6 @@ jobs:
           yarn
           yarn lint
           yarn test
-        env:
-          CI: true
+      - name: integration tests
+        run: |
+          yarn test:ci

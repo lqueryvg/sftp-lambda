@@ -48,6 +48,18 @@ describe("pull", () => {
     }
   });
 
+  it("throws error when neither password nor SSH private key is set", async () => {
+    delete process.env.SFTP_PASSWORD;
+    delete process.env.SFTP_PRIVATE_KEY;
+    try {
+      await pull();
+    } catch (err) {
+      expect(err.message).toMatch(
+        /Environment variables .* not set, need at least one/
+      );
+    }
+  });
+
   it("closes ssh connection on error", async () => {
     mockSftp.readdir = jest.fn().mockImplementation(() => {
       const error = new Error();

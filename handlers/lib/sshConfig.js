@@ -6,7 +6,8 @@ module.exports.getSSHConfig = () => {
     host: getEnv("SFTP_HOST"),
     port: getEnv("SFTP_PORT"),
     username: getEnv("SFTP_USER"),
-    privateKey: getEnv("SFTP_PRIVATE_KEY"),
+    password: getEnv("SFTP_PASSWORD", ["SFTP_PRIVATE_KEY"]),
+    privateKey: getEnv("SFTP_PRIVATE_KEY", ["SFTP_PASSWORD"]),
     reconnect: false, // setting this to true only confuses the overall timeout requirements
     readyTimeout: getEnv("SFTP_SSH_READY_TIMEOUT_SECONDS") * 1000 // milliseconds, the timeout for initial ssh connection
     // reconnectTries: 3,

@@ -44,8 +44,8 @@
   },
   "dependencies": {
     "aws-sdk": "^2.298.0",
-    "ssh2": "0.8.8",
-    "ssh2-promise": "0.1.6"
+    "ssh2": "0.8.9",
+    "ssh2-promise": "0.1.7"
   },
   "jest": {
     "verbose": true,

@@ -6,6 +6,7 @@ describe("config tests", () => {
     "SFTP_HOST",
     "SFTP_PORT",
     "SFTP_USER",
+    "SFTP_PASSWORD",
     "SFTP_PRIVATE_KEY",
     "SFTP_SSH_READY_TIMEOUT_SECONDS",
     "SFTP_RETRY_QUEUE_NAME",

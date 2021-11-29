@@ -1,7 +1,7 @@
 {
   "name": "sftp-lambda",
   "version": "1.0.0",
-  "description": "",
+  "description": "Serverless lambda functions to sync files between AWS S3 and an SFTP server",
   "main": "index.js",
   "scripts": {
     "clean": "rimraf node_modules",
@@ -12,7 +12,7 @@
     "test": "mkdir -p test-results/results/ && jest",
     "test:manual-pull": "cd manual-pull-test && ./docker_sftpd.sh && npx run pull && docker-compose down"
   },
-  "author": "",
+  "author": "John Buxton",
   "license": "ISC",
   "devDependencies": {
     "braces": ">=2.3.1",

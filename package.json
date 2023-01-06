@@ -38,7 +38,7 @@
     "serverless-plugin-existing-s3": "2.4.0",
     "serverless-pseudo-parameters": "2.5.0",
     "serverless-s3-local": "0.5.4",
-    "shelljs": "0.8.3",
+    "shelljs": "0.8.5",
     "wait-port": "0.2.2",
     "rimraf": "2.6.3"
   },

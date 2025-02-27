@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "clean": "rimraf node_modules",
-    "test:ci": "cd integration-test; node integration-test.js",
+    "test:ci": "cd $PWD/integration-test; node integration-test.js",
     "lint": "eslint .",
     "lintfix": "eslint . --fix",
     "precommit": "pretty-quick --staged",
@@ -44,7 +44,7 @@
   },
   "dependencies": {
     "aws-sdk": "^2.814.0",
-    "ssh2": "0.8.9",
+    "ssh2": "1.4.0",
     "ssh2-promise": "0.1.7"
   },
   "jest": {

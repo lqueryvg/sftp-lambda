@@ -1,4 +1,8 @@
-const { SFTP_STATUS_CODE } = require("ssh2");
+const {
+  utils: {
+    sftp: { STATUS_CODE }
+  }
+} = require("ssh2");
 const s3 = require("./s3");
 const { getEnv } = require("./config");
 
@@ -9,7 +13,7 @@ const ensureTargetDeleted = async (sftp, filename) => {
   try {
     stats = await sftp.stat(filename);
   } catch (error) {
-    if (error.code === SFTP_STATUS_CODE.NO_SUCH_FILE) {
+    if (error.code === STATUS_CODE.NO_SUCH_FILE) {
       return;
     }
     throw error;

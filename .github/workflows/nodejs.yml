@@ -8,10 +8,11 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [8.x, 10.x, 12.x]
+        node-version: [10.x, 12.x, 16.x]
 
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v4
+      - uses: docker/setup-docker-action@v2
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v1
         with:

@@ -13,7 +13,7 @@ const sqs = require("./lib/sqs");
 const { waitFor, run } = require("./lib/utils");
 
 const dockerDown = () => {
-  shell.exec("docker-compose down");
+  shell.exec("docker compose down");
 };
 
 const initTestData = () => {
@@ -46,7 +46,7 @@ const waitForSQSMessages = async ({ expectedNumber }) => {
 };
 
 const startSQS = async () => {
-  shell.exec("docker-compose up -d sqs");
+  shell.exec("docker compose up -d sqs");
   await waitPort({ port: 9324, interval: 500 }, 2000);
 };
 
@@ -118,7 +118,7 @@ const testPush = async () => {
 };
 
 const startFTPServer = () => {
-  shell.exec("docker-compose up -d ftp");
+  shell.exec("docker compose up -d ftp");
 };
 
 const waitForSFTPAvailable = async () => {
